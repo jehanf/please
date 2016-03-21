@@ -44,6 +44,28 @@ about() {
     echo ""
 }
 
+mkdomain() {
+   
+    echo -e "\e[1mPlease wait. \e[0mI'm creating the Directory for $sitename.dev..."
+    if mkdir -p /var/www/public/$sitename.dev ; then
+    echo "$sitename.dev" > /var/www/public/$sitename.dev/custom-hosts
+    echo -e "\e[1;32mHooray!\e[0m Directory created successfully."
+    fi
+    
+}
+
+mkvhost() {
+    
+    echo -e "\e[1mHold on please. \e[0mI'm creating the Virtual Host config for $siteame.dev..."
+    if sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$sitename.dev.conf ; then
+    sudo sed -i s,"#ServerName www.example.com","ServerName $sitename.dev",g /etc/apache2/sites-available/$sitename.dev.conf
+    sudo sed -i s,/var/www/public,/var/www/public/$sitename.dev,g /etc/apache2/sites-available/$sitename.dev.conf
+    sudo a2ensite $sitename.dev.conf
+    echo -e "\e[1;32mHooray!\e[0m Virtual Host is ready."
+    fi
+    
+}
+
 create_domain() {
     
     echo -e "\e[1;96mPlease, give me some informations for your new domain \e[0m"
@@ -56,11 +78,7 @@ create_domain() {
     echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
     echo ""
     echo -e "\e[1m Site name : \e[96m$sitename \e[0m"
-    if [ "$site_db" = "y" ] ; then 
-        echo -e "\e[1m Create a database : \e[1;32m Yes please.\e[0m" 
-    else
-        echo -e "\e[1m Create a database : \e[1;31m No thanks.\e[0m"
-    fi
+    [[ "$site_db" = "y" ]] && echo -e "\e[1m Create a database : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Create a database : \e[1;31m No thanks.\e[0m"
     echo ""
     
     # add a simple yes/no confirmation before we proceed
@@ -71,19 +89,9 @@ create_domain() {
     exit
     else
 
-    echo -e "\e[1mPlease wait. \e[0mI'm creating the Directory for $sitename.dev..."
-    if mkdir -p /var/www/public/$sitename.dev ; then
-    echo "$sitename.dev" > /var/www/public/$sitename.dev/custom-hosts
-    echo -e "\e[1;32mHooray!\e[0m Directory created successfully."
-    fi
+    mkdomain
 
-    echo -e "\e[1mHold on please. \e[0mI'm creating the Virtual Host config for $siteame.dev..."
-    if sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$sitename.dev.conf ; then
-    sudo sed -i s,"#ServerName www.example.com","ServerName $sitename.dev",g /etc/apache2/sites-available/$sitename.dev.conf
-    sudo sed -i s,/var/www/public,/var/www/public/$sitename.dev,g /etc/apache2/sites-available/$sitename.dev.conf
-    sudo a2ensite $sitename.dev.conf
-    echo -e "\e[1;32mHooray!\e[0m Virtual Host is ready."
-    fi
+    mkvhost
     
     if [ $site_db = "y" ] ; then
         echo -e "\e[1mSorry to disturb you sir\e[0m, but I will need your MySQL credentials :"
@@ -139,19 +147,9 @@ create_wordpress() {
     exit
     else
 
-    echo -e "\e[1mPlease wait. \e[0mI'm creating the $sitename directory..."
-    if mkdir -p /var/www/public/$sitename.dev ; then
-    echo "$sitename.dev" > /var/www/public/$sitename.dev/custom-hosts
-    echo -e "\e[1;32mHooray!\e[0m Directory created"
-    fi
+    mkdomain
 
-    echo -e "\e[1mPlease wait. \e[0mI'm creating the Virtual Host config for $siteame..."
-    if sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$sitename.dev.conf ; then
-    sudo sed -i s,"#ServerName www.example.com","ServerName $sitename.dev",g /etc/apache2/sites-available/$sitename.dev.conf
-    sudo sed -i s,/var/www/public,/var/www/public/$sitename.dev,g /etc/apache2/sites-available/$sitename.dev.conf
-    sudo a2ensite $sitename.dev.conf
-    echo -e "\e[1;32mHooray!\e[0m Virtual Host is ready."
-    fi
+    mkvhost
 
     echo -e "\e[1mHold on please, \e[0mI'm restarting Apache"
     sudo service apache2 restart
@@ -194,6 +192,61 @@ PHP
     
 }
 
+create_symfony() {
+    
+    echo -e "\e[1;96mPlease, give me some informations for your new Symfony project \e[0m"
+    
+    read -e -p "Site name (your dev url will be [sitename].dev): " sitename
+    read -e -p "Which version do you want to install ? (number or \"lts\"): " symfony_version
+    
+    xdebug=$(php -m | grep -i xdebug)
+    if [ -z "$xdebug" ] ; then
+            read -e -p "I see that the php xdebug extension is not installed, do you want me to install it? (y/n): " xdebug_install
+    fi
+    
+    apc=$(php -m | grep -i apc) 
+    if [ -z "$apc" ] ; then
+            read -e -p "APC Cache doesn't seems to installed, do you want me to install it? (y/n): " apc_install
+    fi
+    
+    echo ""
+    echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
+    echo ""
+    echo -e "\e[1m Site name : \e[96m$sitename.dev\e[0m"
+    echo -e "\e[1m Symfony version : \e[96m$symfony_version\e[0m"
+    [[ "$xdebug_install" = "y" ]] && echo -e "\e[1m Install PHP xdebug : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Install PHP xdebug : \e[1;34m Already installed.\e[0m"
+    [[ "$apc_install" = "y" ]] && echo -e "\e[1m Install APC : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Install APC : \e[1;34m Already installed.\e[0m"
+    echo ""
+    
+    # add a simple yes/no confirmation before we proceed
+    read -e -p "Do you want me to run the installation procedure? (y/n): " run
+
+    # if the user didn't say no, then go ahead an install
+    if [ "$run" == n ] ; then
+    exit
+    else
+    
+    if [ ! -d "/usr/local/bin/symfony" ]; then
+        echo -e "\e[1mSymfony does not seems to be installed. \e[0mBegin installation..."
+        sudo curl -LsS https://symfony.com/installer -o /usr/local/bin/symfony
+        sudo chmod a+x /usr/local/bin/symfony
+    fi
+    
+    if [ "$xdebug_install" == "y" ] ; then
+        echo -e "\e[1mI'm installing xdebug. \e[0mPlease wait a few seconds..."
+        sudo apt-get update -q
+        sudo apt-get install php5-dev php-pear -y
+        sudo pecl install xdebug
+        xdebug_path=$(find / -name 'xdebug.so')
+    fi
+    
+    echo -e "\e[1mPlease wait. \e[0mI'm creating your new Symfony project..."
+    (cd /var/www/public && symfony new $sitename.dev $symfony_version)
+    
+    mkvhost
+    
+}
+
 create_angular() {
     
     echo -e "\e[1;96mPlease, give me some informations for your new Angular2 App \e[0m"
@@ -207,11 +260,7 @@ create_angular() {
     echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
     echo ""
     echo -e "\e[1m Site name : \e[96m$sitename \e[0m"
-    if [ "$node_npm_update" = "y" ] ; then
-        echo -e "\e[1m Update node & npm : \e[32m Yes please.\e[0m" 
-    else
-        echo -e "\e[1m Update node & npm : \e[31m No thanks.\e[0m"
-    fi
+    [[ "$node_npm_update" = "y" ]] && echo -e "\e[1m Update node & npm : \e[32m Yes please.\e[0m" || echo -e "\e[1m Update node & npm : \e[31m No thanks.\e[0m"
     echo ""
     
     # add a simple yes/no confirmation before we proceed
@@ -232,13 +281,7 @@ create_angular() {
     echo -e "\e[1;32mHooray!\e[0m Angular2 App imported successfully. It's a wonderful little girl! Take care of her or it's gonna be veeery very bad for you. Please."
     fi
 
-    echo -e "\e[1mHold on please. \e[0mI'm creating the Virtual Host config for $siteame.dev..."
-    if sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$sitename.dev.conf ; then
-    sudo sed -i s,"#ServerName www.example.com","ServerName $sitename.dev",g /etc/apache2/sites-available/$sitename.dev.conf
-    sudo sed -i s,/var/www/public,/var/www/public/$sitename.dev,g /etc/apache2/sites-available/$sitename.dev.conf
-    sudo a2ensite $sitename.dev.conf
-    echo -e "\e[1;32mHooray!\e[0m Virtual Host is ready."
-    fi
+    mkvhost
     
     if [ "$node_npm_update" == "y" ] ; then
         if sudo npm cache clean -f ; then
@@ -337,8 +380,8 @@ delete() {
         echo -e "\e[1mPlease wait\e[0m, I'm checking if there's a database to remove."
         if mysql -e "use $sitename" ; then
             echo -e "\e[1mSorry to disturb you sir\e[0m, but I will need your MySQL credentials :"
-            read -e -p "Enter your mysql username... " mysql_user
-            read -e -p "...and your mysql password : " mysql_password
+            read -e -p "Enter your mysql username : " mysql_user
+            read -e -p "And your mysql password : " mysql_password
             echo "Hold on please, I'm removing database for $sitename..."
             if mysqladmin -u$mysql_user -p$mysql_password drop $sitename ; then
             echo -e "\e[1;32mHooray!\e[0m database removed"
