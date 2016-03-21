@@ -243,7 +243,7 @@ create_symfony() {
         sudo apt-get install php5-dev php-pear -y
         sudo pecl install xdebug
         xdebug_path=$(find / -name 'xdebug.so')
-        echo "$xdebug_path" >> /etc/php5/cli/php.ini
+        echo "zend_extension=\"$xdebug_path\"" >> /etc/php5/cli/php.ini
     fi
     
     echo -e "\e[1mPlease wait. \e[0mI'm creating your new Symfony project..."
@@ -262,12 +262,12 @@ create_angular() {
     # accept the name of our website
     read -e -p "Site name (your dev url will be [sitename].dev): " sitename
     read -e -p "Maybe you want to update node & npm while you go grab a coffee? (y/n) " node_npm_update
-    read -e -p "Run Angular2 TypeScript compiler right after installation? (y/n): " tsc
+    read -e -p "Run Angular2 TypeScript Compiler in watch mode right after installation? (y/n): " tsc
     
     echo ""
     echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
     echo ""
-    echo -e "\e[1m Site name : \e[96m$sitename \e[0m"
+    echo -e "\e[1m Site name : \e[96m$sitename.dev \e[0m"
     [ $node_npm_update = "y" ] && echo -e "\e[1m Update node & npm : \e[32m Yes please.\e[0m" || echo -e "\e[1m Update node & npm : \e[31m No thanks.\e[0m"
     [ $tsc = "y" ] && echo -e "\e[1m Run Angular2 TypeScript compiler : \e[32m Yes please.\e[0m" || echo -e "\e[1m Run Angular2 TypeScript compiler : \e[31m No thanks.\e[0m"
     echo ""
@@ -285,6 +285,8 @@ create_angular() {
     sudo sed -i s,"Angular 2 QuickStart","$sitename.dev",g /var/www/public/$sitename.dev/index.html
     # THE FOLLOWING LINE IS A FIX FOR THE "ReferenceError: System is not defined" ERROR
     sudo sed -i s,"<script src=\"node_modules/systemjs/dist/system.src.js\"></script>","<script src=\"https://code.angularjs.org/tools/system.js\"></script>",g /var/www/public/$sitename.dev/index.html
+    # THE FOLLOWING LINE IS A FIX FOR THIS ERROR : http://stackoverflow.com/questions/33332394/angular-2-typescript-cant-find-names/35514492#35514492
+    sed -i -e '1i///<reference path="../node_modules/angular2/typings/browser.d.ts"/>\' /var/www/public/$sitename.dev/app/main.ts
     sudo sed -i s,"angular2-quickstart","$sitename.dev",g /var/www/public/$sitename.dev/package.json
     echo "$sitename.dev" > /var/www/public/$sitename.dev/custom-hosts
     echo -e "\e[1;32mHooray!\e[0m Angular2 App imported successfully. It's a wonderful little girl! Take care of her or it's gonna be veeery very bad for you. Please."
@@ -310,12 +312,13 @@ create_angular() {
     echo -e "\e[1mHold on please, \e[0mI'm restarting Apache"
     sudo service apache2 restart
     
-    echo -e "\e[1mI'm doing a possibly-not-so-quick \"npm install\", \e[0m, sorry about that."
+    echo -e "\e[1mI'm doing a possibly-not-so-quick \"npm install\"\e[0m, sorry about that."
     (cd /var/www/public/$sitename.dev && npm install  --ignore-scripts --quiet)
-    (cd /var/www/public/$sitename.dev && typings install)
+    (cd /var/www/public/$sitename.dev && npm run typings)
+    (cd /var/www/public/$sitename.dev && npm run postinstall)
     
     if [ $tsc == "y" ] ; then
-        echo -e "\e[1mI launch the TypeScript Compiler immediately\e[0m, as you requested."
+        echo -e "\e[1mI launch the TypeScript Compiler in watch mode immediately\e[0m, as you requested."
         (cd /var/www/public/$sitename.dev && npm run tsc:w)
     fi
 
