@@ -199,6 +199,8 @@ create_symfony() {
     read -e -p "Site name (your dev url will be [sitename].dev): " sitename
     read -e -p "Which version do you want to install ? (number or \"lts\"): " symfony_version
     
+    read -e -p "Configure your date.timezone in php.ini ?" timezone
+    
     xdebug=$(php -m | grep -i xdebug)
     if [ -z "$xdebug" ] ; then
             read -e -p "I see that the php xdebug extension is not installed, do you want me to install it? (y/n): " xdebug_install
@@ -226,6 +228,9 @@ create_symfony() {
     exit
     else
     
+    # Set the date.timezone in /etc/php5/cli/php.ini to avoid error
+    #sudo sed -i s,";date.timezone =","date.timezone = \"Europe/Paris\"",g /var/www/public/$sitename.dev/index.html
+    
     if [ ! -d "/usr/local/bin/symfony" ]; then
         echo -e "\e[1mSymfony does not seems to be installed. \e[0mBegin installation..."
         sudo curl -LsS https://symfony.com/installer -o /usr/local/bin/symfony
@@ -238,12 +243,15 @@ create_symfony() {
         sudo apt-get install php5-dev php-pear -y
         sudo pecl install xdebug
         xdebug_path=$(find / -name 'xdebug.so')
+        echo "$xdebug_path" >> /etc/php5/cli/php.ini
     fi
     
     echo -e "\e[1mPlease wait. \e[0mI'm creating your new Symfony project..."
     (cd /var/www/public && symfony new $sitename.dev $symfony_version)
     
     mkvhost
+    
+    fi
     
 }
 
