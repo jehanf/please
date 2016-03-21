@@ -78,7 +78,7 @@ create_domain() {
     echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
     echo ""
     echo -e "\e[1m Site name : \e[96m$sitename \e[0m"
-    [[ "$site_db" = "y" ]] && echo -e "\e[1m Create a database : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Create a database : \e[1;31m No thanks.\e[0m"
+    [ $site_db = "y" ] && echo -e "\e[1m Create a database : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Create a database : \e[1;31m No thanks.\e[0m"
     echo ""
     
     # add a simple yes/no confirmation before we proceed
@@ -199,7 +199,7 @@ create_symfony() {
     read -e -p "Site name (your dev url will be [sitename].dev): " sitename
     read -e -p "Which version do you want to install ? (number or \"lts\"): " symfony_version
     
-    read -e -p "Configure your date.timezone in php.ini ?" timezone
+    read -e -p "Configure your date.timezone in php.ini? (y/n)" timezone
     
     xdebug=$(php -m | grep -i xdebug)
     if [ -z "$xdebug" ] ; then
@@ -216,8 +216,8 @@ create_symfony() {
     echo ""
     echo -e "\e[1m Site name : \e[96m$sitename.dev\e[0m"
     echo -e "\e[1m Symfony version : \e[96m$symfony_version\e[0m"
-    [[ "$xdebug_install" = "y" ]] && echo -e "\e[1m Install PHP xdebug : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Install PHP xdebug : \e[1;34m Already installed.\e[0m"
-    [[ "$apc_install" = "y" ]] && echo -e "\e[1m Install APC : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Install APC : \e[1;34m Already installed.\e[0m"
+    [[ $xdebug_install = "y" ]] && echo -e "\e[1m Install PHP xdebug : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Install PHP xdebug : \e[1;34m Already installed.\e[0m"
+    [[ $apc_install = "y" ]] && echo -e "\e[1m Install APC : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Install APC : \e[1;34m Already installed.\e[0m"
     echo ""
     
     # add a simple yes/no confirmation before we proceed
@@ -268,7 +268,8 @@ create_angular() {
     echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
     echo ""
     echo -e "\e[1m Site name : \e[96m$sitename \e[0m"
-    [[ "$node_npm_update" = "y" ]] && echo -e "\e[1m Update node & npm : \e[32m Yes please.\e[0m" || echo -e "\e[1m Update node & npm : \e[31m No thanks.\e[0m"
+    [ $node_npm_update = "y" ] && echo -e "\e[1m Update node & npm : \e[32m Yes please.\e[0m" || echo -e "\e[1m Update node & npm : \e[31m No thanks.\e[0m"
+    [ $tsc = "y" ] && echo -e "\e[1m Run Angular2 TypeScript compiler : \e[32m Yes please.\e[0m" || echo -e "\e[1m Run Angular2 TypeScript compiler : \e[31m No thanks.\e[0m"
     echo ""
     
     # add a simple yes/no confirmation before we proceed
@@ -291,7 +292,7 @@ create_angular() {
 
     mkvhost
     
-    if [ "$node_npm_update" == "y" ] ; then
+    if [ $node_npm_update = "y" ] ; then
         if sudo npm cache clean -f ; then
             echo -e "\e[1msudo npm cache clean -f : \e[1;32mok \e[0m"
         fi
@@ -313,7 +314,7 @@ create_angular() {
     (cd /var/www/public/$sitename.dev && npm install  --ignore-scripts --quiet)
     (cd /var/www/public/$sitename.dev && typings install)
     
-    if [ "$tsc" == "y" ] ; then
+    if [ $tsc == "y" ] ; then
         echo -e "\e[1mI launch the TypeScript Compiler immediately\e[0m, as you requested."
         (cd /var/www/public/$sitename.dev && npm run tsc:w)
     fi
