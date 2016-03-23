@@ -1,6 +1,7 @@
 # PLEASE #
 ## A polite and human automatic project creator for vagrant boxes. ##
 
+
 ### Why **Please** and what is it? ###
 
 This script has been created for automatically create Symfony, WordPress or even Angular2 (and more to come) projects in a Vagrant Box, by running a simple command in the terminal and answering a bunch of questions.
