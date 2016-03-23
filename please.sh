@@ -536,6 +536,8 @@ create_laravel() {
     exit
     else
     
+    fi
+    
 }
 
 create() {
