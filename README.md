@@ -57,9 +57,19 @@ to start the creation of your new project, no matter what is it, I'll only ask y
 Or, the second option, very easy to understand : 
 
 ```bash
-$ please create
+$ please delete
 ```
 to delete a project. Same here, a couple of questions and that's it.
+
+Finally, exit from ssh
+```bash
+$ exit
+```
+
+and reload the vagrant box
+```bash
+$ vagrant box
+```
 
 ## Who do I talk to? ##
 
