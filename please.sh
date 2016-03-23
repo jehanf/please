@@ -506,12 +506,44 @@ create_angular() {
     
 }
 
+create_laravel() {
+    
+    echo ""
+    echo -e "\e[1;96mPlease, give me some informations for your new Laravel App \e[0m"
+    
+    # accept the name of our website
+    sitename=
+    while [[ $sitename = "" ]]; do
+        read -e -p "Site name (your dev url will be [sitename].dev): " sitename
+    done
+    
+    default_composer_update="N"
+        read -e -p "Maybe you want to update composer while you go grab a cup of tea? [y/N]: " composer_update
+    composer_update=${composer_update:-$default_composer_update}
+    
+    echo ""
+    echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
+    echo ""
+    echo -e "\e[1m Site name : \e[96m$sitename.dev \e[0m"
+    [ $composer_update = "y" ] && echo -e "\e[1m Update Composer : \e[32m Yes please.\e[0m" || echo -e "\e[1m Update Composer : \e[31m No thanks.\e[0m"
+    echo ""
+    
+    # add a simple yes/no confirmation before we proceed
+    read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
+
+    # if the user didn't say no, then go ahead an install
+    if [ "$run" == n ] ; then
+    exit
+    else
+    
+}
+
 create() {
     
     echo ""
     echo -e "\e[1;96mPlease select the type of project you want me to create : \e[0m"
     PS3=$'\n'"Please enter your choice: "
-    options=("Simple Domain" "WordPress" "Symfony" "Angular2" "Quit")
+    options=("Simple Domain" "WordPress" "Symfony" "Angular2" "Laravel" "Quit")
     echo ""
     select opt in "${options[@]}"
     do
@@ -530,6 +562,10 @@ create() {
                 ;;
             "Angular2")
                 create_angular
+                break
+                ;;
+            "Laravel")
+                create_laravel
                 break
                 ;;
             "Quit")
