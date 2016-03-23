@@ -286,18 +286,20 @@ create_symfony() {
     
         read -e -p "Which version do you want to install ? (number or \"lts\"): " symfony_version
         
-        if grep -q \;date.timezone "/etc/php5/cli/php.ini"; then
+        if grep -q \;date.timezone "/etc/php5/apache2/php.ini"; then
             default_configure_timezone="Y" 
-            read -e -p "Configure your date.timezone in php.ini? [$configure_timezone/n]: " configure_timezone
+            read -e -p "Configure your date.timezone in php.ini? [$default_configure_timezone/n]: " configure_timezone
             configure_timezone=${configure_timezone:-$default_configure_timezone}
         else
-            configure_timezone="n"
+            configure_timezone="configured"
         fi
         
         if [[ $configure_timezone = "Y" ]] ; then
             timezone=
             while [[ $timezone = "" ]]; do
-                read -e -p "What timezone would you want to set? [e.g. Europe/Paris]: " timezone
+                default_timezone="Europe/Paris"
+                read -e -p "What timezone would you want to set? [e.g. $default_timezone]: " timezone
+                timezone=${timezone:-$default_timezone}
             done
         fi
         
@@ -307,7 +309,7 @@ create_symfony() {
             read -e -p "I see that the php xdebug extension is not installed, do you want me to install it? [$default_xdebug_install/n]: " xdebug_install
             xdebug_install=${xdebug_install:-$default_xdebug_install}
         else
-            xdebug_install="n"
+            xdebug_install="installed"
         fi
         
         apc=$(php -m | grep -i apc) 
@@ -316,7 +318,7 @@ create_symfony() {
             read -e -p "APC Cache doesn't seems to installed, do you want me to install it? [$default_apc_install/n]: " apc_install
             apc_install=${apc_install:-$default_apc_install}
         else
-            apc_install="n"
+            apc_install="installed"
         fi
         
         echo ""
@@ -324,11 +326,34 @@ create_symfony() {
         echo ""
         echo -e "\e[1m Site name : \e[96m$sitename.dev\e[0m"
         echo -e "\e[1m Symfony version : \e[96m$symfony_version\e[0m"
-        [[ $xdebug_install = "Y" ]] && echo -e "\e[1m Install PHP xdebug : \e[1;32mYes please.\e[0m" [[ $xdebug_install = "n" ]] && "\e[1m Install PHP xdebug : \e[1;31m No thanks.\e[0m" || echo -e "\e[1m Install PHP xdebug : \e[1;34mAlready installed.\e[0m"
-        [[ $apc_install = "Y" ]] && echo -e "\e[1m Install php APC : \e[1;32mYes please.\e[0m" [[ $apc_install = "n" ]] && "\e[1m Install php APC : \e[1;31m No thanks.\e[0m" || echo -e "\e[1m Install php APC : \e[1;34mAlready installed.\e[0m"
-        [[ $configure_timezone = "Y" ]] && echo -e "\e[1m Configure timezone : \e[1;32mYes please.\e[0m" [[ $configure_timezone = "n" ]] echo -e "\e[1m Configure timezone : \e[1;31mNo thanks.\e[0m" || echo -e "\e[1m Configure timezone : \e[1;34mAlready configured.\e[0m"
-        [[ $configure_timezone = "Y" ]] && echo -e "\e[1m Chosen timezone : \e[1;32m$timezone\e[0m"
-        echo ""
+        if [ $xdebug_install = "Y" ] ; then 
+            echo -e "\e[1m Install PHP xdebug : \e[1;32mYes please.\e[0m"
+        elif [ $xdebug_install = "n" ] ; then
+            echo -e "\e[1m Install PHP xdebug : \e[1;31m No thanks.\e[0m"
+        else 
+            echo -e "\e[1m Install PHP xdebug : \e[1;34mAlready installed.\e[0m"
+        fi
+        
+        if [ $apc_install = "Y" ] ; then
+            echo -e "\e[1m Install php APC : \e[1;32mYes please.\e[0m"
+        elif [ $apc_install = "n" ] ; then
+            echo -e "\e[1m Install php APC : \e[1;31m No thanks.\e[0m"
+        else
+            echo -e "\e[1m Install php APC : \e[1;34mAlready installed.\e[0m"
+        fi
+        
+        if [ $configure_timezone = "Y" ] ; then
+            echo -e "\e[1m Configure timezone : \e[1;32mYes please.\e[0m"
+        elif [ $configure_timezone = "n" ] ; then
+            echo -e "\e[1m Configure timezone : \e[1;31mNo thanks.\e[0m"
+        else
+            echo -e "\e[1m Configure timezone : \e[1;34mAlready configured.\e[0m"
+        fi
+        if [ $configure_timezone = "Y" ] ; then
+            echo -e "\e[1m Chosen timezone : \e[1;32m$timezone\e[0m"
+        else
+            echo ""
+        fi
         
         # add a simple yes/no confirmation before we proceed
         read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
@@ -340,11 +365,11 @@ create_symfony() {
         
             if [ $configure_timezone = "Y" ] ; then
                 # Set the date.timezone in /etc/php5/cli/php.ini to avoid error
-                sudo sed -i s,"\;date.timezone" =","date.timezone" = \"$timezone\"",g /etc/php5/apache2/php.ini
-                sudo sed -i s,"\;date.timezone" =","date.timezone" = \"$timezone\"",g /etc/php5/cli/php.ini
+                sudo sed -i s,"\;date.timezone =","date.timezone = $timezone",g /etc/php5/apache2/php.ini
+                sudo sed -i s,"\;date.timezone =","date.timezone = $timezone",g /etc/php5/cli/php.ini
             fi
             
-            if [ ! -d "/usr/local/bin/symfony" ]; then
+            if [ ! -f "/usr/local/bin/symfony" ]; then
                 echo -e "\e[1mSymfony does not seems to be installed. \e[0mBegin installation..."
                 sudo curl -LsS https://symfony.com/installer -o /usr/local/bin/symfony
                 sudo chmod a+x /usr/local/bin/symfony
@@ -376,9 +401,12 @@ create_symfony() {
             echo -e "\e[1mHold on, be quiet. \e[0mI'm cracking the code of the vault, full access incoming..."
             ip_address=$(hostname -I | cut -f2 -d' ')
             ip_address=${ip_address::-1}
-            xdebug_to_replace="array('127.0.0.1', 'fe80::1', '::1')"
-            replace_by="array('127.0.0.1', '$ip_address', 'fe80::1', '::1')"
-            sudo sed -i s/"$xdebug_to_replace"/"$replace_by"/g /var/www/public/$sitename.dev/web/app_dev.php
+            xdebug_app_dev_replace="array('127.0.0.1', 'fe80::1', '::1')"
+            xdebug_app_dev_replace_by="array('127.0.0.1', '$ip_address', 'fe80::1', '::1')"
+            xdebug_config_replace="'127.0.0.1'"
+            xdebug_config_replace_by="'127.0.0.1',\n'$ip_address'"
+            sudo sed -i s/"$xdebug_app_dev_replace"/"$xdebug_app_dev_replace_by"/g /var/www/public/$sitename.dev/web/app_dev.php
+            sudo sed -i s/"$xdebug_config_replace"/"$xdebug_config_replace_by"/g /var/www/public/$sitename.dev/web/config.php
             
             apache_restart
         
@@ -399,8 +427,8 @@ create_angular() {
         read -e -p "Site name (your dev url will be [sitename].dev): " sitename
     done
     
-    default_node_npm_update="Y"
-        read -e -p "Maybe you want to update node & npm while you go grab a coffee? [Y/n]: " node_npm_update
+    default_node_npm_update="N"
+        read -e -p "Maybe you want to update node & npm while you go grab a coffee? [y/N]: " node_npm_update
     node_npm_update=${node_npm_update:-$default_node_npm_update}
     
     default_tsc="Y"
@@ -411,7 +439,7 @@ create_angular() {
     echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
     echo ""
     echo -e "\e[1m Site name : \e[96m$sitename.dev \e[0m"
-    [ $node_npm_update = "Y" ] && echo -e "\e[1m Update node & npm : \e[32m Yes please.\e[0m" || echo -e "\e[1m Update node & npm : \e[31m No thanks.\e[0m"
+    [ $node_npm_update = "y" ] && echo -e "\e[1m Update node & npm : \e[32m Yes please.\e[0m" || echo -e "\e[1m Update node & npm : \e[31m No thanks.\e[0m"
     [ $tsc = "Y" ] && echo -e "\e[1m Run Angular2 TypeScript compiler : \e[32m Yes please.\e[0m" || echo -e "\e[1m Run Angular2 TypeScript compiler : \e[31m No thanks.\e[0m"
     echo ""
     
@@ -457,8 +485,7 @@ create_angular() {
     
     echo -e "\e[1mI'm doing a possibly-not-so-quick \"npm install\"\e[0m, sorry about that."
     (cd /var/www/public/$sitename.dev && npm install  --ignore-scripts --quiet)
-    (cd /var/www/public/$sitename.dev && npm run typings)
-    (cd /var/www/public/$sitename.dev && npm run postinstall)
+    (cd /var/www/public/$sitename.dev && npm run typings install)
     
     if [ $tsc == "Y" ] ; then
         echo -e "\e[1mI launch the TypeScript Compiler in watch mode immediately\e[0m, as you requested."
