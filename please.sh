@@ -57,7 +57,7 @@ mkdomain() {
 
 mkvhost() {
     
-    echo -e "\e[1mHold on please. \e[0mI'm creating the Virtual Host config for $siteame.dev..."
+    echo -e "\e[1mHold on please. \e[0mI'm creating the Virtual Host config for $sitename.dev..."
     if sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$sitename.dev.conf ; then
     sudo sed -i s,"#ServerName www.example.com","ServerName $sitename.dev",g /etc/apache2/sites-available/$sitename.dev.conf
     sudo sed -i s,/var/www/public,/var/www/public/$sitename.dev,g /etc/apache2/sites-available/$sitename.dev.conf
@@ -80,7 +80,10 @@ create_domain() {
     echo -e "\e[1;96mPlease, give me some informations for your new domain \e[0m"
     
     # accept the name of our website
-    read -e -p "Site name (your dev url will be [sitename].dev): " sitename
+    sitename=
+    while [[ $sitename = "" ]]; do
+        read -e -p "Site name (your dev url will be [sitename].dev): " sitename
+    done
     
     if [ -d "/var/www/public/$sitename.dev" ]; then 
         echo ""
@@ -89,7 +92,9 @@ create_domain() {
         exit
     else
     
-        read -e -p "Do you want me to create an empty MySQL database ? [y/n] " site_db
+        default_site_db="N" 
+        read -e -p "Do you want me to create an empty MySQL database ? [y/$default_site_db]: " site_db
+        site_db=${site_db:-$default_site_db}
         
         echo ""
         echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
@@ -99,7 +104,7 @@ create_domain() {
         echo ""
         
         # add a simple yes/no confirmation before we proceed
-        read -e -p "Do you want me to run the installation procedure? [y/n]: " run
+        read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
         # if the user didn't say no, then go ahead an install
         if [ "$run" == n ] ; then
@@ -144,7 +149,10 @@ create_wordpress() {
     echo -e "\e[1;96mPlease, give me some informations for your new WordPress installation \e[0m"
     
     # accept the name of our website
-    read -e -p "Site name (your url will be [sitename].dev): " sitename
+    sitename=
+    while [[ $sitename = "" ]]; do
+        read -e -p "Site name (your dev url will be [sitename].dev): " sitename
+    done
     
     if [ -d "/var/www/public/$sitename.dev" ]; then 
         echo ""
@@ -153,10 +161,23 @@ create_wordpress() {
         exit
     else
     
-        read -e -p "Admin Username: " username
-        read -s -p "Admin Password: " password
+        username=
+        while [[ $username = "" ]]; do
+            read -e -p "Admin Username: " username
+        done
+        password=
+        while [[ $password = "" ]]; do
+            read -s -p "Admin Password: " password
+        done
         echo ""
-        read -e -p "Admin Email address: " email
+        email=
+        while [[ $email = "" ]]; do
+            read -e -p "Admin Email address: " email
+        done
+        
+        default_wp_cli="Y" 
+            read -e -p "Maybe you want to update wp-cli ? [$default_wp_cli/n]: " wp_cli
+        wp_cli=${wp_cli:-$default_wp_cli}
         
         echo ""
         echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
@@ -164,10 +185,11 @@ create_wordpress() {
         echo -e "\e[1m Site name : \e[96m$sitename.dev\e[0m"
         echo -e "\e[1m Admin Username : \e[96m$sitename\e[0m"
         echo -e "\e[1m Admin Email address : \e[96m$sitename\e[0m"
+        [ $wp_cli = "Y" ] && echo -e "\e[1m Update WP-CLI : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Update WP-CLI : \e[1;31m No thanks.\e[0m"
         echo ""
         
         # add a simple yes/no confirmation before we proceed
-        read -e -p "Do you want me to run the installation procedure? [y/n]: " run
+        read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
         # if the user didn't say no, then go ahead an install
         if [ "$run" == n ] ; then
@@ -179,6 +201,31 @@ create_wordpress() {
         mkvhost
 
         apache_restart
+        
+        if [ "$wp_cli" = "Y" ] ; then
+        
+            echo -e "\e[1mI'm updating WP-CLI, please wait...\e[0m"
+            curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+            if [ 0 -eq $? ]; then
+                sudo chmod +x wp-cli.phar
+                sudo mv wp-cli.phar /usr/local/bin/wp
+                echo -e "\e[1;32mWP-CLI updated successfully!\e[0m"
+            fi           
+        
+        fi
+        
+        if [ ! -f "/usr/local/bin/wp" ] ; then
+        
+            [ "$wp_cli" = "n" ] && echo -e "\e[1mYou're a little sadistic, you wanted me to install & configure WordPress without WP-CLI! \e[0m" 
+            echo -e "\e[1mI'm installing WP-CLI, please wait...\e[0m"
+            curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
+            if [ 0 -eq $? ]; then
+                sudo chmod +x wp-cli.phar
+                sudo mv wp-cli.phar /usr/local/bin/wp
+                echo -e "\e[1;32mWP-CLI updated successfully!\e[0m"
+            fi
+            
+        fi
 
         # download the WordPress core files
         wp core download --path="/var/www/public/$sitename.dev"
@@ -225,7 +272,10 @@ create_symfony() {
     echo ""
     echo -e "\e[1;96mPlease, give me some informations for your new Symfony project \e[0m"
     
-    read -e -p "Site name (your dev url will be [sitename].dev): " sitename
+    sitename=
+    while [[ $sitename = "" ]]; do
+        read -e -p "Site name (your dev url will be [sitename].dev): " sitename
+    done
     
     if [ -d "/var/www/public/$sitename.dev" ]; then 
         echo ""
@@ -236,16 +286,37 @@ create_symfony() {
     
         read -e -p "Which version do you want to install ? (number or \"lts\"): " symfony_version
         
-        read -e -p "Configure your date.timezone in php.ini? [y/n]: " timezone
+        if grep -q \;date.timezone "/etc/php5/cli/php.ini"; then
+            default_configure_timezone="Y" 
+            read -e -p "Configure your date.timezone in php.ini? [$configure_timezone/n]: " configure_timezone
+            configure_timezone=${configure_timezone:-$default_configure_timezone}
+        else
+            configure_timezone="n"
+        fi
+        
+        if [[ $configure_timezone = "Y" ]] ; then
+            timezone=
+            while [[ $timezone = "" ]]; do
+                read -e -p "What timezone would you want to set? [e.g. Europe/Paris]: " timezone
+            done
+        fi
         
         xdebug=$(php -m | grep -i xdebug)
         if [ -z "$xdebug" ] ; then
-                read -e -p "I see that the php xdebug extension is not installed, do you want me to install it? [y/n]: " xdebug_install
+            default_xdebug_install="Y"
+            read -e -p "I see that the php xdebug extension is not installed, do you want me to install it? [$default_xdebug_install/n]: " xdebug_install
+            xdebug_install=${xdebug_install:-$default_xdebug_install}
+        else
+            xdebug_install="n"
         fi
         
         apc=$(php -m | grep -i apc) 
         if [ -z "$apc" ] ; then
-                read -e -p "APC Cache doesn't seems to installed, do you want me to install it? [y/n]: " apc_install
+            default_apc_install="Y"
+            read -e -p "APC Cache doesn't seems to installed, do you want me to install it? [$default_apc_install/n]: " apc_install
+            apc_install=${apc_install:-$default_apc_install}
+        else
+            apc_install="n"
         fi
         
         echo ""
@@ -253,43 +324,63 @@ create_symfony() {
         echo ""
         echo -e "\e[1m Site name : \e[96m$sitename.dev\e[0m"
         echo -e "\e[1m Symfony version : \e[96m$symfony_version\e[0m"
-        [[ $xdebug_install = "y" ]] && echo -e "\e[1m Install PHP xdebug : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Install PHP xdebug : \e[1;34m Already installed.\e[0m"
-        [[ $apc_install = "y" ]] && echo -e "\e[1m Install APC : \e[1;32m Yes please.\e[0m" || echo -e "\e[1m Install APC : \e[1;34m Already installed.\e[0m"
+        [[ $xdebug_install = "Y" ]] && echo -e "\e[1m Install PHP xdebug : \e[1;32mYes please.\e[0m" [[ $xdebug_install = "n" ]] && "\e[1m Install PHP xdebug : \e[1;31m No thanks.\e[0m" || echo -e "\e[1m Install PHP xdebug : \e[1;34mAlready installed.\e[0m"
+        [[ $apc_install = "Y" ]] && echo -e "\e[1m Install php APC : \e[1;32mYes please.\e[0m" [[ $apc_install = "n" ]] && "\e[1m Install php APC : \e[1;31m No thanks.\e[0m" || echo -e "\e[1m Install php APC : \e[1;34mAlready installed.\e[0m"
+        [[ $configure_timezone = "Y" ]] && echo -e "\e[1m Configure timezone : \e[1;32mYes please.\e[0m" [[ $configure_timezone = "n" ]] echo -e "\e[1m Configure timezone : \e[1;31mNo thanks.\e[0m" || echo -e "\e[1m Configure timezone : \e[1;34mAlready configured.\e[0m"
+        [[ $configure_timezone = "Y" ]] && echo -e "\e[1m Chosen timezone : \e[1;32m$timezone\e[0m"
         echo ""
         
         # add a simple yes/no confirmation before we proceed
-        read -e -p "Do you want me to run the installation procedure? [y/n]: " run
+        read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
         # if the user didn't say no, then go ahead an install
         if [ "$run" == n ] ; then
-        exit
+            exit
         else
         
-        # Set the date.timezone in /etc/php5/cli/php.ini to avoid error
-        sudo sed -i s,";date.timezone =","date.timezone = \"Europe/Paris\"",g /etc/php5/cli/php.ini
-        
-        if [ ! -d "/usr/local/bin/symfony" ]; then
-            echo -e "\e[1mSymfony does not seems to be installed. \e[0mBegin installation..."
-            sudo curl -LsS https://symfony.com/installer -o /usr/local/bin/symfony
-            sudo chmod a+x /usr/local/bin/symfony
-        fi
-        
-        if [ $xdebug_install == "y" ] ; then
-            echo -e "\e[1mI'm installing xdebug. \e[0mPlease wait a few seconds..."
-            sudo apt-get update -qq
-            sudo apt-get install php5-dev php-pear -y
-            sudo pecl install xdebug
-            xdebug_path=$(sudo find / -name 'xdebug.so')
-            sudo echo "zend_extension=\"$xdebug_path\"" >> sudo /etc/php5/cli/php.ini
-        fi
-        
-        echo -e "\e[1mPlease wait. \e[0mI'm creating your new Symfony project..."
-        (cd /var/www/public && symfony new $sitename.dev $symfony_version)
-        echo "$sitename.dev" > /var/www/public/$sitename.dev/custom-hosts
-        
-        mkvhost
-        
-        apache_restart
+            if [ $configure_timezone = "Y" ] ; then
+                # Set the date.timezone in /etc/php5/cli/php.ini to avoid error
+                sudo sed -i s,"\;date.timezone" =","date.timezone" = \"$timezone\"",g /etc/php5/apache2/php.ini
+                sudo sed -i s,"\;date.timezone" =","date.timezone" = \"$timezone\"",g /etc/php5/cli/php.ini
+            fi
+            
+            if [ ! -d "/usr/local/bin/symfony" ]; then
+                echo -e "\e[1mSymfony does not seems to be installed. \e[0mBegin installation..."
+                sudo curl -LsS https://symfony.com/installer -o /usr/local/bin/symfony
+                sudo chmod a+x /usr/local/bin/symfony
+            fi
+            
+            if [ $xdebug_install = "Y" ] ; then
+                echo -e "\e[1mI'm installing xdebug. \e[0mPlease wait a few seconds..."
+                sudo apt-get update -qq
+                sudo apt-get install php5-xdebug
+            fi
+            
+            if [ $apc_install = "Y" ] ; then
+                echo -e "\e[1mI'm installing APC. \e[0mPlease wait a few seconds..."
+                sudo apt-get install php-apc
+            fi
+            
+            echo -e "\e[1mPlease wait. \e[0mI'm creating your new Symfony project..."
+            (cd /var/www/public && symfony new $sitename.dev $symfony_version)
+            echo "$sitename.dev" > /var/www/public/$sitename.dev/custom-hosts
+            
+            echo -e "\e[1mHold on please. \e[0mI'm creating the Virtual Host config for $sitename.dev..."
+            if sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$sitename.dev.conf ; then
+            sudo sed -i s,"#ServerName www.example.com","ServerName $sitename.dev",g /etc/apache2/sites-available/$sitename.dev.conf
+            sudo sed -i s,/var/www/public,/var/www/public/$sitename.dev/web,g /etc/apache2/sites-available/$sitename.dev.conf
+            sudo a2ensite $sitename.dev.conf
+            echo -e "\e[1;32mHooray!\e[0m Virtual Host is ready."
+            fi
+            
+            echo -e "\e[1mHold on, be quiet. \e[0mI'm cracking the code of the vault, full access incoming..."
+            ip_address=$(hostname -I | cut -f2 -d' ')
+            ip_address=${ip_address::-1}
+            xdebug_to_replace="array('127.0.0.1', 'fe80::1', '::1')"
+            replace_by="array('127.0.0.1', '$ip_address', 'fe80::1', '::1')"
+            sudo sed -i s/"$xdebug_to_replace"/"$replace_by"/g /var/www/public/$sitename.dev/web/app_dev.php
+            
+            apache_restart
         
         fi
     
@@ -303,20 +394,29 @@ create_angular() {
     echo -e "\e[1;96mPlease, give me some informations for your new Angular2 App \e[0m"
     
     # accept the name of our website
-    read -e -p "Site name (your dev url will be [sitename].dev): " sitename
-    read -e -p "Maybe you want to update node & npm while you go grab a coffee? [y/n]: " node_npm_update
-    read -e -p "Run Angular2 TypeScript Compiler in watch mode right after installation? [y/n]: " tsc
+    sitename=
+    while [[ $sitename = "" ]]; do
+        read -e -p "Site name (your dev url will be [sitename].dev): " sitename
+    done
+    
+    default_node_npm_update="Y"
+        read -e -p "Maybe you want to update node & npm while you go grab a coffee? [Y/n]: " node_npm_update
+    node_npm_update=${node_npm_update:-$default_node_npm_update}
+    
+    default_tsc="Y"
+        read -e -p "Run Angular2 TypeScript Compiler in watch mode right after installation? [Y/n]: " tsc
+    tsc=${tsc:-$default_tsc}
     
     echo ""
     echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
     echo ""
     echo -e "\e[1m Site name : \e[96m$sitename.dev \e[0m"
-    [ $node_npm_update = "y" ] && echo -e "\e[1m Update node & npm : \e[32m Yes please.\e[0m" || echo -e "\e[1m Update node & npm : \e[31m No thanks.\e[0m"
-    [ $tsc = "y" ] && echo -e "\e[1m Run Angular2 TypeScript compiler : \e[32m Yes please.\e[0m" || echo -e "\e[1m Run Angular2 TypeScript compiler : \e[31m No thanks.\e[0m"
+    [ $node_npm_update = "Y" ] && echo -e "\e[1m Update node & npm : \e[32m Yes please.\e[0m" || echo -e "\e[1m Update node & npm : \e[31m No thanks.\e[0m"
+    [ $tsc = "Y" ] && echo -e "\e[1m Run Angular2 TypeScript compiler : \e[32m Yes please.\e[0m" || echo -e "\e[1m Run Angular2 TypeScript compiler : \e[31m No thanks.\e[0m"
     echo ""
     
     # add a simple yes/no confirmation before we proceed
-    read -e -p "Do you want me to run the installation procedure? [y/n]: " run
+    read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
     # if the user didn't say no, then go ahead an install
     if [ "$run" == n ] ; then
@@ -337,7 +437,7 @@ create_angular() {
 
     mkvhost
     
-    if [ $node_npm_update = "y" ] ; then
+    if [ $node_npm_update = "Y" ] ; then
         if sudo npm cache clean -f ; then
             echo -e "\e[1msudo npm cache clean -f : \e[1;32mok \e[0m"
         fi
@@ -360,7 +460,7 @@ create_angular() {
     (cd /var/www/public/$sitename.dev && npm run typings)
     (cd /var/www/public/$sitename.dev && npm run postinstall)
     
-    if [ $tsc == "y" ] ; then
+    if [ $tsc == "Y" ] ; then
         echo -e "\e[1mI launch the TypeScript Compiler in watch mode immediately\e[0m, as you requested."
         (cd /var/www/public/$sitename.dev && npm run tsc:w)
     fi
@@ -420,7 +520,10 @@ delete() {
     echo -e "\e[1mAlright. \e[0mI hope it's not my fault..."
     echo ""
     
-    read -e -p "Which site do you want me to delete (add the .dev extension please): " sitename
+    sitename=
+    while [[ $sitename = "" ]]; do
+        read -e -p "Which site do you want me to delete (add the .dev extension please): " sitename
+    done
     
     # checking if folder exists, if not : returns error message, if yes, going on
     if [ ! -d "/var/www/public/$sitename" ]; then 
@@ -430,16 +533,20 @@ delete() {
         exit
     else
 
-        read -e -p "Are you sure? You will throw $sitename into limbo. His soul will be lost forever. [y/n]: " run
+        read -e -p "Are you sure? You will throw $sitename into limbo. His soul will be lost forever. [Y/n]: " run
 
         # if the user didn't say no, then go ahead and remove
         if [ "$run" == n ] ; then
             exit
         else
-        
+            
+            echo ""
+            echo ""
             echo "-------------------------------------------------"
-            echo -e "† \e[1m$sitename ut requiescant in pace. †"
+            echo -e "\e[1m† $sitename ut requiescant in pace. †\e[0m"
             echo "-------------------------------------------------"
+            echo ""
+            echo ""
             
             echo -e "\e[1mPlease wait\e[0m, I'm checking if there's a database to remove."
             if mysql -e "use $sitename" ; then
