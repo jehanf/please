@@ -536,6 +536,14 @@ create_laravel() {
     exit
     else
     
+        if [ $composer_update = "y" ] ; then 
+            echo -e "\e[1mUpdating Composer. \e[0m"
+            sudo /usr/local/bin/composer self-update
+            
+            fi
+    
+        echo -e "\e[34mPlease, double-check your informations before I begin to work. \e[0m"
+    
     fi
     
 }
