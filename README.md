@@ -12,7 +12,7 @@ Here is what **Please** will do for you :
 * Creating your project's folder
 * Configuring the Virtual Host (e.g. my-project.dev)
 * Creating a database (optionnal)
-* Installing your framework (WordPress, Symfony...) so you can start working quickly
+* Installing your framework (WordPress, Symfony, Laravel...) so you can start working quickly
 
 [Version **0.1**]
 
@@ -20,7 +20,7 @@ Here is what **Please** will do for you :
 
 ### Get & configure a Vagrant Box ###
 
-First of all, you must install a great Vagrant Box, such as the awesome scotch.io box.
+First of all, you must install a great Vagrant Box, such as my slighly modified scotch.io box.
 Why this box is better than an other one, you ask? **Because it works**. It's great enough for me.  
 
 ```bash
@@ -44,12 +44,6 @@ $ sudo mv please.sh /usr/local/bin/please
 
 First, do a small :
 ```bash
-$ vagrant ssh
-```
-
-and then, you have two options : 
-
-```bash
 $ please create
 ```
 to start the creation of your new project, no matter what is it, I'll only ask you a couple of questions that needs to be answered.
@@ -66,10 +60,7 @@ Finally, exit from ssh
 $ exit
 ```
 
-and reload the vagrant box
-```bash
-$ vagrant box
-```
+Whoa! It's finished!
 
 ## Who do I talk to? ##
 
