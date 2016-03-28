@@ -37,7 +37,8 @@ Very hard, once again :
 
 ```bash
 $ git clone  https://bitbucket.org/JehanF/please
-$ sudo mv please /usr/local/bin/please
+$ sudo chmod +x please/please
+$ sudo mv please/please /usr/local/bin/please && sudo rm -R please
 ```
 
 ### Using **Please** ###
