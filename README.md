@@ -36,8 +36,8 @@ Phewww, I'm sure you are exhausted now!
 Very hard, once again :
 
 ```bash
-$ git clone  https://bitbucket.org/JehanF/please-sh
-$ sudo mv please.sh /usr/local/bin/please
+$ git clone  https://bitbucket.org/JehanF/please
+$ sudo mv please /usr/local/bin/please
 ```
 
 ### Using **Please** ###
