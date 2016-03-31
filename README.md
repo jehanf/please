@@ -36,13 +36,13 @@ Phewww, I'm sure you are exhausted now!
 Very hard, once again :
 
 ```bash
-$ git clone  https://bitbucket.org/JehanF/please
+$ git clone  https://bitbucket.org/jehanf/please
 $ sudo chmod +x please/please
 $ sudo mv please/please /usr/local/bin/please && sudo rm -R please
 ```
 
 Let me just explain the last two lines :  
-`sudo chmod +x please/please` : Makes the bash script executable.
+`sudo chmod +x please/please` : Makes the bash script executable.  
 `sudo mv please/please /usr/local/bin/please && sudo rm -R please` : Moves the bash script into /usr/local/bin/ folder for easy use and remove the folder downloaded via git (now only containing the readme file you are currently reading)
 
 ### Using **Please** ###
