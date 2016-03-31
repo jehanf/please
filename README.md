@@ -1,5 +1,6 @@
-# PLEASE # v0.1
+# PLEASE #
 A polite and human automatic project creator for vagrant boxes.
+Version 0.1
 
 ### ###
 
