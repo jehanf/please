@@ -391,7 +391,7 @@ create_symfony() {
                 vagrant ssh -- -q "sudo sed -i s,'\;date.timezone =','date.timezone = $timezone',g /etc/php5/cli/php.ini"
             fi
             
-            if ! vagrant ssh -- -q "[ ! -f '/usr/local/bin/symfony' ]" ; then
+            if vagrant ssh -- -q "[ ! -f '/usr/local/bin/symfony' ]" ; then
                 echo $'\n'"${bold}Symfony does not seems to be installed. ${normal}Begin installation..."
                 vagrant ssh -- -q "sudo curl -LsS https://symfony.com/installer -o /usr/local/bin/symfony"
                 vagrant ssh -- -q "sudo chmod a+x /usr/local/bin/symfony"
@@ -401,14 +401,14 @@ create_symfony() {
             if [ $xdebug_install = "Y" ] ; then
                 echo "${bold}I'm installing xdebug. ${normal}Please wait a few seconds..."
                 vagrant ssh -- -q "sudo apt-get update -qq"
-                vagrant ssh -- -q "sudo apt-get install php5-xdebug"
+                vagrant ssh -- -q "sudo apt-get install php5-xdebug -y -qq"
                 echo "${bold}${green}Hooray! ${bold}xdebug is installed!${normal}"$'\n'
             fi
             
             if [ $apc_install = "Y" ] ; then
                 echo "${bold}I'm installing APC. ${normal}Please wait a few seconds..."
                 vagrant ssh -- -q "sudo apt-get update -qq"
-                vagrant ssh -- -q "sudo apt-get install php-apc"
+                vagrant ssh -- -q "sudo apt-get install php-apc -y -qq"
                 echo "${bold}${green}Hooray! ${bold}APC is installed!${normal}"$'\n'
             fi
             
