@@ -333,7 +333,7 @@ create_symfony() {
             xdebug_install="installed"
         fi
         
-        if ! vagrant ssh -- -q "[ -f '/etc/php5/mods-available/apcu.ini' ]] && echo 'It seems to me that APC is installed, going on.'" ; then
+        if ! vagrant ssh -- -q "[ -f '/etc/php5/mods-available/apcu.ini' ] && echo 'It seems to me that APC is installed, going on.'" ; then
             default_apc_install="Y"
             read -e -p "APC Cache doesn't seems to installed, do you want me to install it? [$default_apc_install/n]: " apc_install
             apc_install=${apc_install:-$default_apc_install}
