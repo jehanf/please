@@ -29,7 +29,7 @@ $ cd my-folder
 $ vagrant up
 ```
 
-**Important** : for the Virtual Host to work properly, you must install the *Vagrant Hosts Updater* plugin by running this simple command in your Vagrant Box folder :
+**Important** : for the Virtual Host to work properly, you must install the [Vagrant Hosts Updater](https://github.com/cogitatio/vagrant-hostsupdater) plugin by running this simple command in your Vagrant Box folder :
 
 ```bash
 $ vagrant plugin install vagrant-hostsupdater
