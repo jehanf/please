@@ -56,11 +56,6 @@ $ please delete
 ```
 to delete a project. Same here, a couple of questions and that's it.
 
-Finally, exit from ssh
-```bash
-$ exit
-```
-
 Whoa! It's finished!
 
 ## Who do I talk to? ##
