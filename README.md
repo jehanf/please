@@ -1,4 +1,4 @@
-# PLEASE #
+# PLEASE # v0.1
 A polite and human automatic project creator for vagrant boxes.
 
 ### ###
@@ -14,8 +14,6 @@ Here is what **Please** will do for you :
 * Configuring the Virtual Host (e.g. my-project.dev)
 * Creating a database (optionnal)
 * Installing your framework (WordPress, Symfony, Laravel...) so you can start working quickly
-
-[Version **0.1**]
 
 ## SETUP GUIDE ##
 
