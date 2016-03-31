@@ -20,7 +20,7 @@ Here is what **Please** will do for you :
 
 ### Get & configure a Vagrant Box ###
 
-First of all, you must install a great Vagrant Box, such as my slighly modified scotch.io box.
+First of all, you must install a great Vagrant Box, such as my slighly modified scotch.io box.  
 Why this box is better than an other one, you ask? **Because it works**. It's great enough for me.  
 
 ```bash
@@ -29,7 +29,7 @@ $ cd my-folder
 $ vagrant up
 ```
 
-**Important** : for the Virtual Hosts to work properly, you must install the [Vagrant Hosts Updater](https://github.com/cogitatio/vagrant-hostsupdater) plugin by running this simple command in your Vagrant Box folder :
+**Important** : for the Virtual Hosts to work properly, you must install the [Vagrant Hosts Updater](https://github.com/cogitatio/vagrant-hostsupdater) plugin by running this simple command :
 
 ```bash
 $ vagrant plugin install vagrant-hostsupdater
