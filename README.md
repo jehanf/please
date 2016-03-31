@@ -9,6 +9,7 @@ This script has been created for automatically create Symfony, WordPress or even
 And since command line is a bit austere, I tried to add a bit of humanity in it.
 
 Here is what **Please** will do for you :
+
 * Creating your project's folder
 * Configuring the Virtual Host (e.g. my-project.dev)
 * Creating a database (optionnal)
