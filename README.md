@@ -1,5 +1,5 @@
 # PLEASE #
-A polite and human automatic project creator for vagrant boxes.
+A polite and human automatic project creator for vagrant boxes.  
 Version 0.1
 
 ### ###
@@ -24,7 +24,7 @@ First of all, you must install a great Vagrant Box, such as my slighly modified 
 Why this box is better than an other one, you ask? **Because it works**. It's great enough for me.  
 
 ```bash
-$ git clone  https://github.com/scotch-io/scotch-box  my-folder
+$ git clone  https://github.com/jehanf/please-box.git  my-folder
 $ cd my-folder
 $ vagrant up
 ```
@@ -40,6 +40,10 @@ $ git clone  https://bitbucket.org/JehanF/please
 $ sudo chmod +x please/please
 $ sudo mv please/please /usr/local/bin/please && sudo rm -R please
 ```
+
+Let me just explain the last two lines :  
+`sudo chmod +x please/please` : Makes the bash script executable.
+`sudo mv please/please /usr/local/bin/please && sudo rm -R please` : Moves the bash script into /usr/local/bin/ folder for easy use and remove the folder downloaded via git (now only containing the readme file you are currently reading)
 
 ### Using **Please** ###
 
