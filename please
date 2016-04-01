@@ -426,8 +426,8 @@ create_symfony() {
             fi
             
             echo "${bold}Hold on, be quiet. ${normal}I'm cracking the code of the vault, full access incoming..."
-            vagrant ssh -- -q "sudo sed -i 's/'\''127.0.0.1'\''/'\''127.0.0.1'\'', '\''192.168.33.1'\''/g' /var/www/public/test.dev/web/app_dev.php"
-            vagrant ssh -- -q "sudo sed -i 's/'\''127.0.0.1'\''/'\''127.0.0.1'\'',\n'\''192.168.33.1'\''/g' /var/www/public/test.dev/web/config.php"
+            vagrant ssh -- -q "sudo sed -i 's/'\''127.0.0.1'\''/'\''127.0.0.1'\'', '\''192.168.33.1'\''/g' /var/www/public/$sitename/web/app_dev.php"
+            vagrant ssh -- -q "sudo sed -i 's/'\''127.0.0.1'\''/'\''127.0.0.1'\'',\n'\''192.168.33.1'\''/g' /var/www/public/$sitename/web/config.php"
             
             vagrant_reboot
             
