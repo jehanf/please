@@ -247,42 +247,42 @@ create_wordpress() {
                     
                 fi
                 
-                # download the WordPress core file
-                vagrant ssh -- -q "wp core download --path='/var/www/public/$sitename'"
+            fi
                 
-                # create the wp-config file with our standard setup
-                vagrant ssh -- -q "wp core config --path='/var/www/public/$sitename' --dbname=$sitename --dbuser=root --dbpass=root --extra-php <<PHP
+            # download the WordPress core file
+            vagrant ssh -- -q "wp core download --path='/var/www/public/$sitename'"
+                
+            # create the wp-config file with our standard setup
+            vagrant ssh -- -q "wp core config --path='/var/www/public/$sitename' --dbname=$sitename --dbuser=root --dbpass=root --extra-php <<PHP
 define( 'WP_DEBUG', true );
 define( 'WP_DEBUG_LOG', true );
 PHP"
 
-                echo $'\n'"${bold}Please wait. I'm creating the WordPress database${normal}"
-                vagrant ssh -- -q "wp db create --path='/var/www/public/$sitename'"
-                echo $'\n'"${bold}I know this is getting boring${normal}, but I have almost finished! I'm installing WordPress right now..."
-                vagrant ssh -- -q "wp core install --url='http://$sitename' --title='$sitename' --admin_user='$username' --admin_password='$password' --admin_email='$email' --path='/var/www/public/$sitename' --skip-email"
+            echo $'\n'"${bold}Please wait. I'm creating the WordPress database${normal}"
+            vagrant ssh -- -q "wp db create --path='/var/www/public/$sitename'"
+            echo $'\n'"${bold}I know this is getting boring${normal}, but I have almost finished! I'm installing WordPress right now..."
+            vagrant ssh -- -q "wp core install --url='http://$sitename' --title='$sitename' --admin_user='$username' --admin_password='$password' --admin_email='$email' --path='/var/www/public/$sitename' --skip-email"
                 
-                # set pretty urls
-                vagrant ssh -- -q "wp rewrite structure '/%postname%/' --hard --path='/var/www/public/$sitename'"
-                vagrant ssh -- -q "wp rewrite flush --hard --path='/var/www/public/$sitename'"
+            # set pretty urls
+            vagrant ssh -- -q "wp rewrite structure '/%postname%/' --hard --path='/var/www/public/$sitename'"
+            vagrant ssh -- -q "wp rewrite flush --hard --path='/var/www/public/$sitename'"
                 
-                # delete akismet and hello dolly
-                vagrant ssh -- -q "wp plugin delete akismet --path='/var/www/public/$sitename'"
-                vagrant ssh -- -q "wp plugin delete hello --path='/var/www/public/$sitename'"
+            # delete akismet and hello dolly
+            vagrant ssh -- -q "wp plugin delete akismet --path='/var/www/public/$sitename'"
+            vagrant ssh -- -q "wp plugin delete hello --path='/var/www/public/$sitename'"
                 
-                echo ""
-                vagrant_reboot
+            echo ""
+            vagrant_reboot
                 
-                echo "================================================================="
-                echo ""
-                echo "${bold}Your WordPress is ${cyan}ready${normal}!"
-                echo ""
-                echo "Enjoy your new website : ${blue}http://$sitename ${normal}"
-                echo "Head to your WordPress admin : ${blue}http://$sitename/wp-admin ${normal}"
-                echo ""
-                echo "================================================================="
-                echo ""
-
-            fi
+            echo "================================================================="
+            echo ""
+            echo "${bold}Your WordPress is ${cyan}ready${normal}!"
+            echo ""
+            echo "Enjoy your new website : ${blue}http://$sitename ${normal}"
+            echo "Head to your WordPress admin : ${blue}http://$sitename/wp-admin ${normal}"
+            echo ""
+            echo "================================================================="
+            echo ""
             
         fi
         
