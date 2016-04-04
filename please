@@ -325,7 +325,7 @@ create_symfony() {
             done
         fi
 
-        if ! vagrant ssh -- -q "[ -f '/etc/php5/mods-available/xdebug.ini' ] && echo 'xdebug is installed, I've nothing to do! Per-fect!'" ; then
+        if ! vagrant ssh -- -q "[ -f /etc/php5/mods-available/xdebug.ini ] && echo 'xdebug is installed, I have nothing to do! Per-fect! '" ; then
             default_xdebug_install="Y"
             read -e -p "I see that the php xdebug extension is not installed, do you want me to install it? [$default_xdebug_install/n]: " xdebug_install
             xdebug_install=${xdebug_install:-$default_xdebug_install}
