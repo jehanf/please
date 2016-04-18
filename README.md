@@ -61,6 +61,13 @@ to start the creation of your new project, no matter what is it, I'll only ask y
 
 You can also do a simple `$ please create wordpress` (or replace wordpress by the correct framework you want to use).
 
+At the moment, only the following services are available (shorthand command) :
+- Simple Custom Domain (domain)
+- WordPress (wordpress)
+- Symfony (symfony)
+- Laravel (laravel)
+- Angular2 (angular2)
+
 And the second option, very easy to understand : 
 
 ```bash
