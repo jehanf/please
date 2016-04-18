@@ -59,7 +59,9 @@ $ please create
 ```
 to start the creation of your new project, no matter what is it, I'll only ask you a couple of questions that needs to be answered.
 
-Or, the second option, very easy to understand : 
+You can also do a simple `$ please create wordpress` (or replace wordpress by the correct framework you want to use).
+
+And the second option, very easy to understand : 
 
 ```bash
 $ please delete
