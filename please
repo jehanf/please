@@ -728,23 +728,18 @@ main() {
             case $2 in
                 "domain")
                     create_domain
-                    break
                     ;;
                 "wordpress")
                     create_wordpress
-                    break
                     ;;
                 "symfony")
                     create_symfony
-                    break
                     ;;
                 "angular2")
                     create_angular
-                    break
                     ;;
                 "laravel")
                     create_laravel
-                    break
                     ;;
                 *) echo invalid option;;
             esac
