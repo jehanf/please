@@ -51,7 +51,7 @@ about() {
 
     A polite and human automatic project creator for vagrant boxes.
     Author : Jehan Fillat <contact@jehanfillat.com>
-    GitHub : https://github.com/JehanApathia
+    GitHub : https://github.com/jehanf
     
     ${normal}
 ABOUT
