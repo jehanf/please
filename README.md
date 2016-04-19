@@ -42,7 +42,7 @@ Phewww, I'm sure you are exhausted now!
 Very hard, once again :
 
 ```bash
-$ git clone  https://bitbucket.org/jehanf/please
+$ git clone  https://github.com/jehanf/please.git
 $ sudo chmod +x please/please
 $ sudo mv please/please /usr/local/bin/please && sudo rm -R please
 ```
