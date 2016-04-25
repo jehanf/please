@@ -13,7 +13,7 @@ Here is what **Please** will do for you :
 
 * Creating your project's folder
 * Configuring the Virtual Host (e.g. my-project.dev)
-* Creating a database (optionnal)
+* Creating a database (optional)
 * Installing your framework (WordPress, Symfony, Laravel...) so you can start working quickly
 
 ## SETUP GUIDE ##
