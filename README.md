@@ -1,6 +1,6 @@
 # PLEASE #
 A polite and human automatic project creator for vagrant boxes.  
-Version 0.1
+Version 0.2
 
 ### ###
 
@@ -76,6 +76,11 @@ $ please delete
 to delete a project. Same here, a couple of questions and that's it.
 
 Whoa! It's finished!
+
+### **Please**, tell me what are your other options! ###
+
+`please --version` : Display current version (that was highly unexpected.) and tells you if an update is available. 
+
 
 ## Who do I talk to? ##
 

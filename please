@@ -62,16 +62,22 @@ check_update() {
     # Idea taken from the excellet https://github.com/bradp/vv
     github_version=$(curl -s https://api.github.com/repos/jehanf/please/tags | grep --color=never "\"name\": \"" | head -n 1 | sed 's/"name": "//' | sed 's/",//' | sed 's/ //g' )
     if [[ ! -z "$github_version" ]]; then
-        echo ""
-        echo "========================================="
-        echo "Your ${bold}${cyan}Please${normal} version is ${bold}$version_number${normal}."
-        echo "========================================="
         if [[ ! "$version_number" = "$github_version" ]]; then
-            echo ""
-            echo "${bold}${green}An update is available!${normal}. You can update to version ${bold}$github_version${normal} by typing \"please update\""
+            echo "${bold}${green}An update is available!${normal} You can update to version ${bold}$github_version${normal} by typing \"please update\""
             echo ""
         fi
     fi
+    
+}
+
+version() {
+    
+    echo ""
+    echo "========================================="
+    echo "Your ${bold}${cyan}Please${normal} version is ${bold}$version_number${normal}."
+    echo "========================================="
+    echo ""
+    check_update
     
 }
 
@@ -739,7 +745,7 @@ main() {
 	fi
     
     if [ "$1" = "--version" ]; then
-        check_update
+        version
     fi
     
     if [ "$1" = "create" ]; then
