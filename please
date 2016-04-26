@@ -65,9 +65,30 @@ check_update() {
         if [[ ! "$version_number" = "$github_version" ]]; then
             echo "${bold}${green}An update is available!${normal} You can update to version ${bold}$github_version${normal} by typing \"please update\""
             echo ""
+        else
+            echo "Oh my god! ${bold}${green}You are up-to-date!${normal} It's amazing! I can't believe it! You are ${bold}TRUE HERO${normal}!"
+            exit
         fi
     fi
     
+}
+
+update() {
+    
+    check_update
+    
+    download_link=https://github.com/jehanf/please/archive/"$github_version".tar.gz
+    echo "${bold}Downloading upgrade...${normal}"
+    if curl -sL "$download_link" | tar xz ; then
+        sudo chmod +x please-$github_version/please
+        echo "${bold}Upgrading...${normal}"
+        if sudo mv please-$github_version/please /usr/local/bin/please && sudo rm -R please-$github_version ; then
+            echo "${bold}${green}Hooray!${normal} I upgraded myself, my brain is all new!"
+        fi
+    else
+        echo "${bold}${red}Oops!${normal} I failed at downloading the new version..."
+    fi
+
 }
 
 version() {
@@ -746,6 +767,10 @@ main() {
     
     if [ "$1" = "--version" ]; then
         version
+    fi
+    
+    if [ "$1" = "update" ]; then
+        update
     fi
     
     if [ "$1" = "create" ]; then
