@@ -22,7 +22,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.1.6.0
 #
-version_number=0.2
+version_number=0.2.5
 
 # Defining colors
 if [[ ! -z $(which tput 2>/dev/null) ]]; then
@@ -106,8 +106,8 @@ mkdomain() {
    
     echo $'\n'"${bold}Please wait. ${normal}I'm creating the Directory for $sitename..."
     
-    if mkdir -p public/$sitename ; then
-        echo "$sitename" > public/$sitename/custom-hosts
+    if vagrant ssh -- -q -t "mkdir -p /var/www/public/$sitename" ; then
+        vagrant ssh -- -q -t "echo \"$sitename\" > /var/www/public/$sitename/custom-hosts"
         echo "${green}Hooray!${normal} Directory created successfully."$'\n'
     fi
     
@@ -122,7 +122,7 @@ mkvhost() {
         vagrant ssh -- -q -t "sudo a2ensite $sitename.conf > /dev/null 2>&1"
         echo "${green}Hooray!${normal} Virtual Host is ready."$'\n'
     else
-        echo "${error_bg}${bold}${white}Oops!${normal} I was unable to create the database. Exiting."$'\n'
+        echo "${error_bg}${bold}${white}Oops!${normal} I was unable to create the Virtual Host. Exiting."$'\n'
         exit
     fi
     
@@ -498,80 +498,89 @@ create_angular() {
     
     ask_sitename
     
-    default_node_npm_update="N"
-        read -e -p "Maybe you want to update node & npm while you go grab a coffee? [y/N]: " node_npm_update
-    node_npm_update=${node_npm_update:-$default_node_npm_update}
-    
-    default_tsc="Y"
-        read -e -p "Run Angular2 TypeScript Compiler in watch mode right after installation? [Y/n]: " tsc
-    tsc=${tsc:-$default_tsc}
-    
-    echo ""
-    echo "${blue}Please, double-check your informations before I begin to work. ${normal}"
-    echo ""
-    echo "${bold} Site name : ${cyan}$sitename ${normal}"
-    [ $node_npm_update = "y" ] && echo "${bold} Update node & npm : ${green} Yes please.${normal}" || echo "${bold} Update node & npm : ${red} No thanks.${normal}"
-    [ $tsc = "Y" ] && echo "${bold} Run Angular2 TypeScript compiler : ${green} Yes please.${normal}" || echo "${bold} Run Angular2 TypeScript compiler : ${red} No thanks.${normal}"
-    echo ""
-    
-    # add a simple yes/no confirmation before we proceed
-    read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
-
-    # if the user didn't say no, then go ahead an install
-    if [ "$run" == n ] ; then
+    if [ -d "public/$sitename" ]; then 
+        echo ""
+        echo "${bold}${red}$sitename already exists.${bold} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${bold}"
+        echo ""
         exit
     else
+    
+        default_node_npm_update="N"
+            read -e -p "Maybe you want to update node & npm while you go grab a coffee? [y/N]: " node_npm_update
+        node_npm_update=${node_npm_update:-$default_node_npm_update}
+        
+        default_tsc="Y"
+            read -e -p "Run Angular2 TypeScript Compiler in watch mode right after installation? [Y/n]: " tsc
+        tsc=${tsc:-$default_tsc}
+        
+        echo ""
+        echo "${blue}Please, double-check your informations before I begin to work. ${normal}"
+        echo ""
+        echo "${bold} Site name : ${cyan}$sitename ${normal}"
+        [ $node_npm_update = "y" ] && echo "${bold} Update node & npm : ${green} Yes please.${normal}" || echo "${bold} Update node & npm : ${red} No thanks.${normal}"
+        [ $tsc = "Y" ] && echo "${bold} Run Angular2 TypeScript compiler : ${green} Yes please.${normal}" || echo "${bold} Run Angular2 TypeScript compiler : ${red} No thanks.${normal}"
+        echo ""
+        
+        # add a simple yes/no confirmation before we proceed
+        read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
-        echo $'\n'"${bold}Please wait. ${normal}I'm importing a quickstart Angular2 App from GitHub Repo in $sitename directory..."
-        if vagrant ssh -- -q "git clone https://github.com/angular/quickstart /var/www/public/$sitename" ; then
-            vagrant ssh -- -q "sudo sed -i 's/Angular 2 QuickStart/$sitename/g' /var/www/public/$sitename/index.html"
-            # THE FOLLOWING LINE IS A FIX FOR THE "ReferenceError: System is not defined" ERROR
-            #vagrant ssh -- -q "sudo sed -i 's,node_modules/systemjs/dist/system.src.js,https://code.angularjs.org/tools/system.js,g' /var/www/public/test.dev/index.html"
-            # THE FOLLOWING LINE IS A FIX FOR THIS ERROR : http://stackoverflow.com/questions/33332394/angular-2-typescript-cant-find-names/35514492#35514492
-            # vagrant ssh -- -q "sed -i -e '1i///<reference path='../node_modules/angular2/typings/browser.d.ts'/>\' /var/www/public/$sitename/app/main.ts"
-            vagrant ssh -- -q "sudo sed -i 's/angular2-quickstart/$sitename/g' /var/www/public/$sitename/package.json"
-            vagrant ssh -- -q "echo $sitename > /var/www/public/$sitename/custom-hosts"
-            vagrant ssh -- -q "echo '${bold}${green}Hooray!${normal} Angular2 App imported successfully. It's a wonderful little girl! Take care of her or it's gonna be veeery very bad for you. Please.'$'\n'"
+        # if the user didn't say no, then go ahead an install
+        if [ "$run" == n ] ; then
+            exit
+        else
+
+            echo $'\n'"${bold}Please wait. ${normal}I'm importing a quickstart Angular2 App from GitHub Repo in $sitename directory..."
+            if vagrant ssh -- -q "git clone https://github.com/angular/quickstart /var/www/public/$sitename" ; then
+                vagrant ssh -- -q "sudo sed -i 's/Angular 2 QuickStart/$sitename/g' /var/www/public/$sitename/index.html"
+                # THE FOLLOWING LINE IS A FIX FOR THE "ReferenceError: System is not defined" ERROR
+                #vagrant ssh -- -q "sudo sed -i 's,node_modules/systemjs/dist/system.src.js,https://code.angularjs.org/tools/system.js,g' /var/www/public/test.dev/index.html"
+                # THE FOLLOWING LINE IS A FIX FOR THIS ERROR : http://stackoverflow.com/questions/33332394/angular-2-typescript-cant-find-names/35514492#35514492
+                # vagrant ssh -- -q "sed -i -e '1i///<reference path='../node_modules/angular2/typings/browser.d.ts'/>\' /var/www/public/$sitename/app/main.ts"
+                vagrant ssh -- -q "sudo sed -i 's/angular2-quickstart/$sitename/g' /var/www/public/$sitename/package.json"
+                vagrant ssh -- -q "echo $sitename > /var/www/public/$sitename/custom-hosts"
+                vagrant ssh -- -q "echo '${bold}${green}Hooray!${normal} Angular2 App imported successfully. It's a wonderful little girl! Take care of her or it's gonna be veeery very bad for you. Please.'$'\n'"
+            fi
+
+            mkvhost
+            
+            if [ $node_npm_update = "Y" ] ; then
+                if vagrant ssh -- -q "sudo npm cache clean -f" ; then
+                    echo "${bold}sudo npm cache clean -f : ${bold}${green}ok ${normal}"
+                fi
+                if vagrant ssh -- -q "sudo npm install -g n" ; then
+                    echo "${bold}sudo npm install -g n : ${bold}${green}ok ${normal}"
+                fi
+                if vagrant ssh -- -q "sudo n stable" ; then
+                    echo "${bold}sudo n stable : ${bold}${green}ok ${normal}"
+                fi
+                if vagrant ssh -- -q "sudo n stable" ; then
+                echo "${bold}sudo npm install npm -g : ${bold}${green}ok ${normal}"
+                fi
+            fi
+            
+            echo "${bold}I'm doing a possibly-not-so-quick \"npm install\"${normal}, sorry about that."
+            vagrant ssh -- -q "(cd /var/www/public/$sitename && npm install  --ignore-scripts --quiet)"
+            vagrant ssh -- -q "(cd /var/www/public/$sitename && npm run typings install)"
+            echo "${bold}${green}Hooray! ${normal}${bold}I finally finished to do the npm-install! Let's have a drink together.${normal}"$'\n'
+            
+            vagrant_reboot
+
+            echo "================================================================="
+            echo ""
+            echo "${bold}Your new Angular2 App is ${bold}${cyan}ready${normal}!"
+            echo ""
+            echo "Enjoy it here : ${blue}http://$sitename${normal}"
+            echo ""
+            echo "================================================================="
+            echo ""
+            
+            if [ $tsc == "Y" ] ; then
+                echo "${bold}I launch the TypeScript Compiler in watch mode immediately${normal}, as you requested."
+                vagrant ssh -- -q "(cd /var/www/public/$sitename && npm run tsc:w)"
+            fi
+
         fi
-
-        mkvhost
         
-        if [ $node_npm_update = "Y" ] ; then
-            if vagrant ssh -- -q "sudo npm cache clean -f" ; then
-                echo "${bold}sudo npm cache clean -f : ${bold}${green}ok ${normal}"
-            fi
-            if vagrant ssh -- -q "sudo npm install -g n" ; then
-                echo "${bold}sudo npm install -g n : ${bold}${green}ok ${normal}"
-            fi
-            if vagrant ssh -- -q "sudo n stable" ; then
-                echo "${bold}sudo n stable : ${bold}${green}ok ${normal}"
-            fi
-            if vagrant ssh -- -q "sudo n stable" ; then
-            echo "${bold}sudo npm install npm -g : ${bold}${green}ok ${normal}"
-            fi
-        fi
-        
-        echo "${bold}I'm doing a possibly-not-so-quick \"npm install\"${normal}, sorry about that."
-        vagrant ssh -- -q "(cd /var/www/public/$sitename && npm install  --ignore-scripts --quiet)"
-        vagrant ssh -- -q "(cd /var/www/public/$sitename && npm run typings install)"
-        echo "${bold}${green}Hooray! ${normal}${bold}I finally finished to do the npm-install! Let's have a drink together.${normal}"$'\n'
-        
-        vagrant_reboot
-
-        echo "================================================================="
-        echo ""
-        echo "${bold}Your new Angular2 App is ${bold}${cyan}ready${normal}!"
-        echo ""
-        echo "Enjoy it here : ${blue}http://$sitename${normal}"
-        echo ""
-        echo "================================================================="
-        echo ""
-        
-        if [ $tsc == "Y" ] ; then
-            echo "${bold}I launch the TypeScript Compiler in watch mode immediately${normal}, as you requested."
-            vagrant ssh -- -q "(cd /var/www/public/$sitename && npm run tsc:w)"
-        fi
-
     fi
     
 }
@@ -583,64 +592,217 @@ create_laravel() {
     
     ask_sitename
     
-    default_composer_update="N"
-        read -e -p "Maybe you want to update composer while you go grab a cup of tea? [y/N]: " composer_update
-    composer_update=${composer_update:-$default_composer_update}
-    
-    echo ""
-    echo "${blue}Please, double-check your informations before I begin to work. ${normal}"
-    echo ""
-    echo "${bold} Site name : ${cyan}$sitename ${normal}"
-    [ $composer_update = "y" ] && echo "${bold} Update Composer : ${green} Yes please.${normal}" || echo "${bold} Update Composer : ${red} No thanks.${normal}"
-    echo ""
-    
-    # add a simple yes/no confirmation before we proceed
-    read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
-
-    # if the user didn't say no, then go ahead an install
-    if [ "$run" == n ] ; then
-    exit
+    if [ -d "public/$sitename" ]; then 
+        echo ""
+        echo "${bold}${red}$sitename already exists.${bold} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${bold}"
+        echo ""
+        exit
     else
     
-        if [ $composer_update = "y" ] ; then 
-            echo $'\n'"${bold}Updating Composer. ${normal}"
-            if vagrant ssh -- -q "sudo /usr/local/bin/composer self-update" ; then
-                echo "${bold}${green}Hooray! ${normal}${bold}Composer's up and runnin', baby. ${normal}"$'\n'
-            else
-                echo "${error_bg}${bold}${white}Oops! ${normal}${bold}Something went wrong, I don't know where, I don't know why. ${normal}"$'\n'
-            fi
-                
-        fi
+        default_composer_update="N"
+            read -e -p "Maybe you want to update composer while you go grab a cup of tea? [y/N]: " composer_update
+        composer_update=${composer_update:-$default_composer_update}
         
-        echo "${bold}Hold on please. ${normal}I'm creating the Virtual Host config for $sitename..."
-        if vagrant ssh -- -q -t "sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$sitename.conf" ; then
-            vagrant ssh -- -q -t "sudo sed -i s,'#ServerName www.example.com','ServerName $sitename',g /etc/apache2/sites-available/$sitename.conf"
-            vagrant ssh -- -q -t "sudo sed -i s,/var/www/public,/var/www/public/$sitename/public,g /etc/apache2/sites-available/$sitename.conf"
-            vagrant ssh -- -q -t "sudo a2ensite $sitename.conf > /dev/null 2>&1"
-            echo "${green}Hooray!${normal} Virtual Host is ready."$'\n'
-        else
-            echo "${error_bg}${bold}${white}Oops!${normal} I was unable to create the database. Exiting."$'\n'
-            exit
-        fi
+        echo ""
+        echo "${blue}Please, double-check your informations before I begin to work. ${normal}"
+        echo ""
+        echo "${bold} Site name : ${cyan}$sitename ${normal}"
+        [ $composer_update = "y" ] && echo "${bold} Update Composer : ${green} Yes please.${normal}" || echo "${bold} Update Composer : ${red} No thanks.${normal}"
+        echo ""
         
-        echo "${bold}And now, the grand final (it was long, hu?), Laravel itself.${normal}"
-        if vagrant ssh -- -q "(cd /var/www/public && composer create-project --prefer-dist laravel/laravel $sitename)" ; then
-            echo "$sitename" > public/$sitename/custom-hosts
-            echo "${bold}${green}Hooray! ${normal}${bold}I made it! Laravel is installed!. ${normal}"$'\n'
-        else
-            echo "${error_bg}${bold}${white}Oops! ${normal}${bold}I messed up everything... I wasn't able to install Laravel... I'm a loser...${normal}"$'\n'
-        fi
-        
-        vagrant_reboot
+        # add a simple yes/no confirmation before we proceed
+        read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
-        echo "================================================================="
+        # if the user didn't say no, then go ahead an install
+        if [ "$run" == n ] ; then
+        exit
+        else
+        
+            if [ $composer_update = "y" ] ; then 
+                echo $'\n'"${bold}Updating Composer. ${normal}"
+                if vagrant ssh -- -q "sudo /usr/local/bin/composer self-update" ; then
+                    echo "${bold}${green}Hooray! ${normal}${bold}Composer's up and runnin', baby. ${normal}"$'\n'
+                else
+                    echo "${error_bg}${bold}${white}Oops! ${normal}${bold}Something went wrong, I don't know where, I don't know why. ${normal}"$'\n'
+                fi
+                    
+            fi
+            
+            echo "${bold}Hold on please. ${normal}I'm creating the Virtual Host config for $sitename..."
+            if vagrant ssh -- -q -t "sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$sitename.conf" ; then
+                vagrant ssh -- -q -t "sudo sed -i s,'#ServerName www.example.com','ServerName $sitename',g /etc/apache2/sites-available/$sitename.conf"
+                vagrant ssh -- -q -t "sudo sed -i s,/var/www/public,/var/www/public/$sitename/public,g /etc/apache2/sites-available/$sitename.conf"
+                vagrant ssh -- -q -t "sudo a2ensite $sitename.conf > /dev/null 2>&1"
+                echo "${green}Hooray!${normal} Virtual Host is ready."$'\n'
+            else
+                echo "${error_bg}${bold}${white}Oops!${normal} I was unable to create the database. Exiting."$'\n'
+                exit
+            fi
+            
+            echo "${bold}And now, the grand final (it was long, hu?), Laravel itself.${normal}"
+            if vagrant ssh -- -q "(cd /var/www/public && composer create-project --prefer-dist laravel/laravel $sitename)" ; then
+                vagrant ssh -- -q -t "echo \"$sitename\" > /var/www/public/$sitename/custom-hosts"
+                echo "${bold}${green}Hooray! ${normal}${bold}I made it! Laravel is installed! ${normal}"$'\n'
+            else
+                echo "${error_bg}${bold}${white}Oops! ${normal}${bold}I messed up everything... I wasn't able to install Laravel... I'm a loser...${normal}"$'\n'
+            fi
+            
+            vagrant_reboot
+
+            echo "================================================================="
+            echo ""
+            echo "${bold}Your new Laravel project is ${bold}${cyan}ready${normal}!"
+            echo ""
+            echo "Enjoy it here : ${blue}http://$sitename${normal}"
+            echo ""
+            echo "================================================================="
+            echo ""
+        
+        fi
+    
+    fi
+    
+}
+
+create_pagekit() {
+    
+    echo ""
+    echo "${bold}${cyan}Please, give me some informations for your new Pagekit project ${normal}"
+    
+    ask_sitename
+    
+    if [ -d "public/$sitename" ]; then 
         echo ""
-        echo "${bold}Your new Laravel project is ${bold}${cyan}ready${normal}!"
+        echo "${bold}${red}$sitename already exists.${bold} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${bold}"
         echo ""
-        echo "Enjoy it here : ${blue}http://$sitename${normal}"
-        echo ""
-        echo "================================================================="
-        echo ""
+        exit
+    else
+    
+        admin_email=
+        while [[ $admin_email = "" ]]; do
+            read -e -p "I will need your email address, if you don't mind: " admin_email
+        done
+        
+        admin_password=
+        while [[ $admin_password = "" ]]; do
+            read -s -p "Of course, you have to setup an admin password: " admin_password
+        done
+    
+        default_dbdriver="mysql"
+            read -e -p $'\n'"You have to choose between MySQL and SQLite now. [${bold}$default_dbdriver${normal}/sqlite] " dbdriver
+        dbdriver=${dbdriver:-$default_dbdriver}
+        
+        if [ $dbdriver = "mysql" ] ; then
+            
+            echo ""
+            echo "${bold}You've chosen MySQL${normal}, so I need a few extra details."
+            echo ""
+            
+            default_dbhost="localhost"
+                read -e -p "What is your MySQL host? [localhost] " dbhost
+            dbhost=${dbhost:-$default_dbhost}
+            
+            default_dbuser="root"
+                read -e -p "Please tell me your MySQL username? [root] " dbuser
+            dbuser=${dbuser:-$default_dbuser}
+            
+            dbpass=
+            while [[ $dbpass = "" ]]; do
+                read -s -p "I'm sure you expected me to ask you a password. I'm previsible, your MySQL password for ${bold}$dbuser${normal} please : " dbpass
+            done
+            
+        fi
+        
+        default_node_npm_update="N"
+            read -e -p $'\n'"Maybe you want to update node & npm before installing your Pagekit project? [y/N]: " node_npm_update
+        node_npm_update=${node_npm_update:-$default_node_npm_update}
+        
+        default_composer_update="N"
+            read -e -p "What about updating ${bold}Composer${normal}? I heard the new version is better than Justin Bieber since it produces no sound. [y/N]: " composer_update
+        composer_update=${composer_update:-$default_composer_update}
+        
+        echo $'\n'"${blue}Ok! I'm all set! Please, double-check your informations before I begin to work. ${normal}"$'\n'
+        echo "${bold} Site name : ${cyan}$sitename ${normal}"
+        echo "${bold} Email address : ${cyan}$admin_email ${normal}"
+        echo "${bold} Admin Password : ${cyan}123456 (You really thought I would show it here? Cute) ${normal}"
+        echo "${bold} Datbase driver : ${cyan}$dbdriver ${normal}"
+        [ $dbdriver = "mysql" ] && echo "${bold} MySQL Host : ${cyan}$dbhost${normal}"
+        [ $dbdriver = "mysql" ] && echo "${bold} MySQL Username : ${cyan}$dbuser${normal}"
+        [ $composer_update = "y" ] && echo "${bold} Update Composer : ${green}Yes please.${normal}" || echo "${bold} Update Composer : ${red} No thanks.${normal}"
+        [ $node_npm_update = "y" ] && echo "${bold} Update node & npm : ${green}Yes please.${normal}" || echo "${bold} Update node & npm : ${red} No thanks.${normal}"
+        
+        # add a simple yes/no confirmation before we proceed
+        read -e -p $'\n'"Do you want me to run the installation procedure? [Y/n]: " run
+
+        # if the user didn't say no, then go ahead an install
+        if [ "$run" == n ] ; then
+        exit
+        else
+            
+            if [ $dbdriver = "mysql" ] ; then
+                echo "${bold}Please wait. ${normal}Creating database for $sitename..."
+                if vagrant ssh -- -q -t "mysqladmin -u $dbuser create $sitename" ; then
+                    echo "${green}Hooray!${normal} Database $sitename created successfully."$'\n'
+                else
+                    echo "${error_bg}${bold}${white}Oops!${normal} I was unable to create the database. Exiting."$'\n'
+                    exit
+                fi
+            fi
+        
+            echo "${bold}OK!${normal} (high-pitched-plumber-voice=on) ${red}Here we go-o${normal}!"
+            
+            echo $'\n'"${bold}Please wait. ${normal}I might broke the WorldWide Web by colining the GitHub Repo in your $sitename directory..."
+            if vagrant ssh -- -q "git clone --branch develop git://github.com/pagekit/pagekit.git /var/www/public/$sitename" ; then
+    
+                vagrant ssh -- -q -t "echo \"$sitename\" > /var/www/public/$sitename/custom-hosts"
+                echo "${bold}${green}Hooray!${normal} Pagekit repository cloned successfully! I love myself. You should write a book about me."$'\n'
+                mkvhost
+                
+            else 
+                exit        
+            fi
+            
+            echo $'\n'"I will now launch the ${bold}Composer${normal} install, so you can peacefully go and grab a coffee, answer your emails, or annoy your coworkers/colleagues by playing Eiffel 65's ${blue}Blue${normal}."
+            if vagrant ssh -- -q "cd /var/www/public/$sitename && composer install" ; then
+                echo $'\n'"Everything worked with ${bold}Composer${normal}! Let's do some ${bold}npm${normal} stuff now."
+            else
+                echo $'\n'"${bold}${red}Oops!${normal} ${bold}Composer${normal}'s symphony was a big letdown, nothing worked as expected"$'\n'
+                exit
+            fi
+            
+            if vagrant ssh -- -q "cd /var/www/public/$sitename && npm install" ; then
+                echo $'\n'"${bold}npm${normal} installed everything well! Let's install Pagekit now."
+            else
+                echo $'\n'"${bold}${red}Oops!${normal} There was something wrong with ${bold}npm${normal}"$'\n'
+                exit
+            fi
+                        
+            base_pagekit_install="/var/www/public/$sitename/pagekit setup -q --adminmail $admin_email --adminpass $admin_password --dbdriver $dbdriver"
+            [ $dbdriver = "mysql" ] && pagekit_install_dbname=" --dbname $dbname" || pagekit_install_dbname=""
+            [ $dbdriver = "mysql" ] && pagekit_install_dbhost=" --dbhost $dbhost" || pagekit_install_dbhost=""
+            [ $dbdriver = "mysql" ] && pagekit_install_dbuser=" --dbuser $dbuser" || pagekit_install_dbuser=""
+            [ $dbdriver = "mysql" ] && pagekit_install_dbpass=" --dbpass $dbpass" || pagekit_install_dbpass=""
+            pagekit_install="$base_pagekit_install$pagekit_install_dbname$pagekit_install_dbhost$pagekit_install_dbuser$pagekit_install_dbpass"
+                        
+            if vagrant ssh -- -q "cd /var/www/public/$sitename && $pagekit_install" ; then 
+                echo "${bold}${green}Hooray! ${normal}${bold}Pagekit is installed! ${normal}"$'\n'   
+            else
+                echo $'\n'"${bold}${red}Oops!${normal} I failed at the gates of glory. ${bold}Pagekit${normal} was not installed..."$'\n'
+                exit
+            fi
+            
+            vagrant_reboot
+            
+            echo "================================================================="
+            echo ""
+            echo "${bold}Your new Pagekit project is ${bold}${cyan}ready${normal}!"
+            echo ""
+            echo "Enjoy it here : ${blue}http://$sitename${normal}"
+            echo ""
+            echo "================================================================="
+            echo ""
+            
+        fi
     
     fi
     
@@ -651,7 +813,7 @@ create() {
     echo "${cyan}${bold}"
     echo "Please select the type of project you want me to create :${normal}"
     PS3=$'\n'"Please enter your choice: "
-    options=("Simple Domain" "WordPress" "Symfony" "Angular2" "Laravel" "Quit")
+    options=("Simple Domain" "WordPress" "Symfony" "Angular2" "Laravel" "Pagekit" "Quit")
     echo ""
     select opt in "${options[@]}"
     do
@@ -673,6 +835,10 @@ create() {
                 break
                 ;;
             "Laravel")
+                create_laravel
+                break
+                ;;
+            "Pagekit")
                 create_laravel
                 break
                 ;;
@@ -793,6 +959,9 @@ main() {
                     ;;
                 "laravel")
                     create_laravel
+                    ;;
+                "pagekit")
+                    create_pagekit
                     ;;
                 *) echo invalid option;;
             esac
