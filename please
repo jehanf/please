@@ -4,7 +4,7 @@
 # Please - An almost-polite and human automatic project creator for vagrant boxes.
 # By Jehan Fillat <contact@jehanfillat.com>
 #
-# Version 0.2
+# Version 0.3
 #
 # Copyright (C) 2016 Jehan Fillat
 #
@@ -22,7 +22,7 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.1.6.0
 #
-version_number=0.2.5
+version_number=0.3
 
 # Defining colors
 if [[ ! -z $(which tput 2>/dev/null) ]]; then
@@ -798,6 +798,8 @@ create_pagekit() {
             echo "${bold}Your new Pagekit project is ${bold}${cyan}ready${normal}!"
             echo ""
             echo "Enjoy it here : ${blue}http://$sitename${normal}"
+            echo "Your admin panel is at this location : ${blue}http://$sitename/admin${normal}"
+            echo "Please note that your username is ${bold}admin${normal}"
             echo ""
             echo "================================================================="
             echo ""
@@ -808,12 +810,115 @@ create_pagekit() {
     
 }
 
+create_react() {
+    
+    echo $'\n'"${bold}Please, give me some informations for your new React project${normal}"
+    
+    ask_sitename
+    
+    if [ -d "public/$sitename" ]; then 
+    
+        echo ""
+        echo "${bold}${error_bg}${white}$sitename already exists.${normal} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${normal}"
+        echo ""
+        exit
+        
+    else
+    
+        default_site_db="N" 
+        read -e -p "I don't know your plans, so maybe you want me to create an empty MySQL database ? [y/$default_site_db]: " site_db
+        site_db=${site_db:-$default_site_db}
+        
+        echo ""
+        echo "${bold}${blue}Please, double-check your informations before I begin to work. ${normal}"
+        echo ""
+        echo "${bold} Site name : ${cyan}$sitename ${normal}"
+        [ $site_db = "y" ] && echo "${bold} Create a database : ${green} Yes please.${normal}" || echo "${bold} Create a database : ${bold}${red} No thanks.${normal}"
+        echo ""
+        
+        # add a simple yes/no confirmation before we proceed
+        read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
+
+        # if the user didn't say no, then go ahead an install
+        if [ "$run" == n ] ; then
+            exit
+        else
+    
+            mkdomain
+            
+            mkvhost
+            
+            if [ $site_db = "y" ] ; then
+            
+                echo ""
+                echo "${bold}So, MySQL${normal}. I need a few extra details."
+                echo ""
+
+                default_dbuser="root"
+                    read -e -p "Please tell me your MySQL username? [root] " dbuser
+                dbuser=${dbuser:-$default_dbuser}
+                    
+                echo "${bold}Please wait. ${normal}Creating database for $sitename..."
+                if vagrant ssh -- -q -t "mysqladmin -u $dbuser create $sitename" ; then
+                    echo "${green}Hooray!${normal} Database $sitename created successfully."$'\n'
+                else
+                    echo "${error_bg}${bold}${white}Oops!${normal} I was unable to create the database. Exiting."$'\n'
+                    exit
+                fi
+            
+            fi
+            
+            if vagrant ssh -- -q -t "cat > /var/www/public/$sitename/index.html <<REACT
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=\"UTF-8\" />
+    <title>Hello React!</title>
+    <script src=\"https://fb.me/react-15.0.1.js\"></script>
+    <script src=\"https://fb.me/react-dom-15.0.1.js\"></script>
+    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js\"></script>
+  </head>
+  <body>
+    <div id=\"example\"></div>
+    <script type=\"text/babel\">
+      ReactDOM.render(
+        <h1>Hello, world!</h1>,
+        document.getElementById('example')
+      );
+    </script>
+  </body>
+</html>
+REACT" ; then
+
+                echo "${green}Hooray!${normal} React project started!"$'\n'
+                
+            else
+                echo "${red}Oops!${normal} I'm so dumb I didn't even managed to create a basic React project..."$'\n'
+            fi
+            
+            vagrant_reboot
+            
+            echo "================================================================="
+            echo ""
+            echo "${bold}   Your React project is ${bold}${cyan}up & ready${normal}!"
+            echo ""
+            echo "   Enjoy : ${cyan}http://$sitename${normal}"
+            echo ""
+            echo "================================================================="
+            echo ""
+
+        fi
+        
+    fi
+    
+}
+
 create() {
     
     echo "${cyan}${bold}"
     echo "Please select the type of project you want me to create :${normal}"
     PS3=$'\n'"Please enter your choice: "
-    options=("Simple Domain" "WordPress" "Symfony" "Angular2" "Laravel" "Pagekit" "Quit")
+    options=("Simple Domain" "WordPress" "Symfony" "Angular2" "Laravel" "Pagekit" "React" "Quit")
     echo ""
     select opt in "${options[@]}"
     do
@@ -840,6 +945,10 @@ create() {
                 ;;
             "Pagekit")
                 create_laravel
+                break
+                ;;
+            "React")
+                create_react
                 break
                 ;;
             "Quit")
@@ -962,6 +1071,9 @@ main() {
                     ;;
                 "pagekit")
                     create_pagekit
+                    ;;
+                "react")
+                    create_react
                     ;;
                 *) echo invalid option;;
             esac
