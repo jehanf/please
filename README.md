@@ -1,6 +1,6 @@
 # PLEASE #
 A polite and human automatic project creator for vagrant boxes.  
-Version 0.2
+Version 0.3
 
 ### ###
 
@@ -67,6 +67,8 @@ At the moment, only the following services are available (shorthand command) :
 - Symfony (symfony)
 - Laravel (laravel)
 - Angular2 (angular2)
+- Pagekit (pagekit)
+- React (react)
 
 And the second option, very easy to understand : 
 
