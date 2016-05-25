@@ -944,7 +944,7 @@ create() {
                 break
                 ;;
             "Pagekit")
-                create_laravel
+                create_pagekit
                 break
                 ;;
             "React")
