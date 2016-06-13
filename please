@@ -1026,7 +1026,7 @@ delete() {
 
             vagrant_reboot
             
-            echo "Your $sitename was sucessfully ${bold}${cyan}erased${normal}!"$'\n'
+            echo "Your $sitename was successfully ${bold}${cyan}erased${normal}!"$'\n'
 
         fi
         
