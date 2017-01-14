@@ -24,6 +24,8 @@
 #
 version_number=0.3
 
+public_dir="public"
+
 # Defining colors
 if [[ ! -z $(which tput 2>/dev/null) ]]; then
 	normal=$(tput sgr0)
@@ -38,27 +40,30 @@ if [[ ! -z $(which tput 2>/dev/null) ]]; then
     error_bg=$(tput setab 1)
 fi
 
+
+## Utility Functions
+
 about() {
 	cat <<ABOUT
 	${cyan}
 
     ██████╗ ██╗     ███████╗ █████╗ ███████╗███████╗
     ██╔══██╗██║     ██╔════╝██╔══██╗██╔════╝██╔════╝
-    ██████╔╝██║     █████╗  ███████║███████╗█████╗  
-    ██╔═══╝ ██║     ██╔══╝  ██╔══██║╚════██║██╔══╝  
+    ██████╔╝██║     █████╗  ███████║███████╗█████╗
+    ██╔═══╝ ██║     ██╔══╝  ██╔══██║╚════██║██╔══╝
     ██║     ███████╗███████╗██║  ██║███████║███████╗
-    ╚═╝     ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝                  
+    ╚═╝     ╚══════╝╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝
 
     A polite and human automatic project creator for vagrant boxes.
     Author : Jehan Fillat <contact@jehanfillat.com>
     GitHub : https://github.com/jehanf
-    
+
     ${normal}
 ABOUT
 }
 
 check_update() {
-    
+
     # Idea taken from the excellet https://github.com/bradp/vv
     github_version=$(curl -s https://api.github.com/repos/jehanf/please/tags | grep --color=never "\"name\": \"" | head -n 1 | sed 's/"name": "//' | sed 's/",//' | sed 's/ //g' )
     if [[ ! -z "$github_version" ]]; then
@@ -70,13 +75,13 @@ check_update() {
             exit
         fi
     fi
-    
+
 }
 
 update() {
-    
+
     check_update
-    
+
     download_link=https://github.com/jehanf/please/archive/"$github_version".tar.gz
     echo "${bold}Downloading upgrade...${normal}"
     if curl -sL "$download_link" | tar xz ; then
@@ -92,87 +97,98 @@ update() {
 }
 
 version() {
-    
+
     echo ""
     echo "========================================="
     echo "Your ${bold}${cyan}Please${normal} version is ${bold}$version_number${normal}."
     echo "========================================="
     echo ""
     check_update
-    
+
 }
 
 mkdomain() {
-   
+
     echo $'\n'"${bold}Please wait. ${normal}I'm creating the Directory for $sitename..."
-    
-    if vagrant ssh -- -q -t "mkdir -p /var/www/public/$sitename" ; then
-        vagrant ssh -- -q -t "echo \"$sitename\" > /var/www/public/$sitename/custom-hosts"
+
+    if vagrant ssh -- -q -t "mkdir -p /var/www/$public_dir$sitename" ; then
+        vagrant ssh -- -q -t "echo \"$sitename\" > /var/www/$public_dir$sitename/custom-hosts"
         echo "${green}Hooray!${normal} Directory created successfully."$'\n'
     fi
-    
+
 }
 
 mkvhost() {
-    
+
     echo "${bold}Hold on please. ${normal}I'm creating the Virtual Host config for $sitename..."
     if vagrant ssh -- -q -t "sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$sitename.conf" ; then
         vagrant ssh -- -q -t "sudo sed -i s,'#ServerName www.example.com','ServerName $sitename',g /etc/apache2/sites-available/$sitename.conf"
-        vagrant ssh -- -q -t "sudo sed -i s,/var/www/public,/var/www/public/$sitename,g /etc/apache2/sites-available/$sitename.conf"
+        vagrant ssh -- -q -t "sudo sed -i s,/var/www/public,/var/www/$public_dir$sitename,g /etc/apache2/sites-available/$sitename.conf"
         vagrant ssh -- -q -t "sudo a2ensite $sitename.conf > /dev/null 2>&1"
         echo "${green}Hooray!${normal} Virtual Host is ready."$'\n'
     else
         echo "${error_bg}${bold}${white}Oops!${normal} I was unable to create the Virtual Host. Exiting."$'\n'
         exit
     fi
-    
+
+}
+
+git_clone() {
+
+	if vagrant ssh -- -q -t "mkdir -p /var/www/$public_dir$sitename" ; then
+		vagrant ssh -- -q -t "cd /var/www/$public_dir$sitename && git init && git remote add origin $git_url && git fetch && git checkout -t origin/master"
+		echo "${green}Hooray!${normal} Cloned Repo successfully."$'\n'
+	fi
+
 }
 
 vagrant_reboot() {
-    
+
     echo "${bold}The final step! ${normal}I'm restarting your vagrant box..."
     if vagrant reload --provision ; then
         echo "${green}Hooray!${normal} I've worked correctly, for once. Vagrant Box's up again!"$'\n'
     fi
-    
+
 }
 
 ask_sitename() {
-    
+
     # accept the name of our website
     sitename=
     while [[ $sitename = "" ]]; do
         read -e -p "Site name (with extension): " sitename
     done
-    
+
 }
 
+## Create Functions
+
 create_domain() {
-    
+
     echo $'\n'"${bold}Please, give me some informations for your new domain${normal}"
-    
+
     ask_sitename
-    
-    if [ -d "public/$sitename" ]; then 
-    
+
+    if [ -d "$public_dir$sitename" ]; then
+
         echo ""
         echo "${bold}${error_bg}${white}$sitename already exists.${normal} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${normal}"
         echo ""
         exit
-        
+
     else
-    
-        default_site_db="N" 
+
+        default_site_db="N"
         read -e -p "Do you want me to create an empty MySQL database ? [y/$default_site_db]: " site_db
         site_db=${site_db:-$default_site_db}
-        
+
         echo ""
         echo "${bold}${blue}Please, double-check your informations before I begin to work. ${normal}"
         echo ""
         echo "${bold} Site name : ${cyan}$sitename ${normal}"
         [ $site_db = "y" ] && echo "${bold} Create a database : ${green} Yes please.${normal}" || echo "${bold} Create a database : ${bold}${red} No thanks.${normal}"
         echo ""
-        
+
         # add a simple yes/no confirmation before we proceed
         read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
@@ -180,11 +196,11 @@ create_domain() {
         if [ "$run" == n ] ; then
             exit
         else
-    
+
             mkdomain
-            
+
             mkvhost
-            
+
             if [ $site_db = "y" ] ; then
                 echo "${bold}Please wait. ${normal}Creating database for $sitename..."
                 if vagrant ssh -- -q -t "mysqladmin -u root create $sitename" ; then
@@ -194,9 +210,9 @@ create_domain() {
                     exit
                 fi
             fi
-            
+
             vagrant_reboot
-            
+
             echo "================================================================="
             echo ""
             echo "${bold}   Your Domain is ${bold}${cyan}ready${normal}!"
@@ -207,25 +223,97 @@ create_domain() {
             echo ""
 
         fi
-        
+
     fi
-        
-      
+
+
 }
 
-create_wordpress() {
-    
-    echo $'\n'"${bold}${blue}Please, give me some informations for your new WordPress installation ${normal}"
-    
+create_git() {
+
+    echo ""
+    echo "${bold}${cyan}Please, give me some informations for your Git Project ${normal}"
+
     ask_sitename
-    
-    if [ -d "public/$sitename" ]; then 
+
+    if [ -d "$sitename" ]; then
         echo ""
         echo "${bold}${red}$sitename already exists.${bold} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${bold}"
         echo ""
         exit
     else
-    
+
+        git_url=
+        while [[ $git_url = "" ]]; do
+            read -e -p "I will need your Git Clone Url please: " git_url
+        done
+
+		default_site_db="N"
+		read -e -p "Do you want me to create an empty MySQL database ? [y/$default_site_db]: " site_db
+		site_db=${site_db:-$default_site_db}
+
+		echo ""
+        echo "${bold}${blue}Please, double-check your informations before I begin to work. ${normal}"
+        echo ""
+        echo "${bold} Site name : ${cyan}$sitename ${normal}"
+        echo "${bold} Git URL : ${cyan}$git_url ${normal}"
+        [ $site_db = "y" ] && echo "${bold} Create a database : ${green} Yes please.${normal}" || echo "${bold} Create a database : ${bold}${red} No thanks.${normal}"
+        echo ""
+
+        # add a simple yes/no confirmation before we proceed
+        read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
+
+        # if the user didn't say no, then go ahead an install
+        if [ "$run" == n ] ; then
+            exit
+        else
+
+			mkdomain
+
+			git_clone
+
+            mkvhost
+
+            if [ $site_db = "y" ] ; then
+                echo "${bold}Please wait. ${normal}Creating database for $sitename..."
+                if vagrant ssh -- -q -t "mysqladmin -u root create $sitename" ; then
+                    echo "${green}Hooray!${normal} Database $sitename created successfully."$'\n'
+                else
+                    echo "${error_bg}${bold}${white}Oops!${normal} I was unable to create the database. Exiting."$'\n'
+                    exit
+                fi
+            fi
+
+            vagrant_reboot
+
+            echo "================================================================="
+            echo ""
+            echo "${bold}   Your Domain is ${bold}${cyan}ready${normal}!"
+            echo ""
+            echo "   Enjoy your new website : ${cyan}http://$sitename ${normal}"
+            echo ""
+            echo "================================================================="
+            echo ""
+
+        fi
+
+    fi
+
+}
+
+create_wordpress() {
+
+    echo $'\n'"${bold}${blue}Please, give me some informations for your new WordPress installation ${normal}"
+
+    ask_sitename
+
+    if [ -d "$public_dir$sitename" ]; then
+        echo ""
+        echo "${bold}${red}$sitename already exists.${bold} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${bold}"
+        echo ""
+        exit
+    else
+
         username=
         while [[ $username = "" ]]; do
             read -e -p "Admin Username: " username
@@ -239,11 +327,11 @@ create_wordpress() {
         while [[ $email = "" ]]; do
             read -e -p "Admin Email address: " email
         done
-        
-        default_wp_cli="Y" 
+
+        default_wp_cli="Y"
             read -e -p "Maybe you want to update wp-cli ? [$default_wp_cli/n]: " wp_cli
         wp_cli=${wp_cli:-$default_wp_cli}
-        
+
         echo ""
         echo "${bold}${blue}Please, double-check your informations before I begin to work. ${normal}"
         echo ""
@@ -252,7 +340,7 @@ create_wordpress() {
         echo "${bold} Admin Email address : ${cyan}$email${normal}"
         [ $wp_cli = "Y" ] && echo "${bold} Update WP-CLI : ${bold}${green} Yes please.${normal}" || echo "${bold} Update WP-CLI : ${bold}${red} No thanks.${normal}"
         echo ""
-        
+
         # add a simple yes/no confirmation before we proceed
         read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
@@ -264,9 +352,9 @@ create_wordpress() {
             mkdomain
 
             mkvhost
-            
+
             if [ "$wp_cli" = "Y" ] ; then
-            
+
                 echo "${bold}I'm updating WP-CLI, please wait...${normal}"
                 if vagrant ssh -- -q "curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar" ; then
                     vagrant ssh -- -q "sudo chmod +x wp-cli.phar"
@@ -274,13 +362,13 @@ create_wordpress() {
                     echo "${bold}${green}WP-CLI updated successfully!${normal}"
                 else
                     echo "${bold}${red}Sorry... I wasn't able to update WP-CLI...${normal}"
-                fi           
-            
+                fi
+
             else
-            
+
                 if ! vagrant ssh -- -q "[ -f /usr/local/bin/wp ] && echo '${bold}WP-CLI install found, going on.${normal}'" ; then
-                
-                    [ "$wp_cli" = "n" ] && echo "${bold}You're a little sadistic, you wanted me to install & configure WordPress without WP-CLI! ${normal}" 
+
+                    [ "$wp_cli" = "n" ] && echo "${bold}You're a little sadistic, you wanted me to install & configure WordPress without WP-CLI! ${normal}"
                     echo "${bold}I'm installing WP-CLI, please wait...${normal}"
                     if vagrant ssh -- -q "curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar" ; then
                         vagrant ssh -- -q "sudo chmod +x wp-cli.phar"
@@ -288,79 +376,79 @@ create_wordpress() {
                         echo "${bold}${green}WP-CLI installed successfully!${normal}"
                     else
                         echo "${bold}${red}Sorry... I wasn't able to install WP-CLI...${normal}"
-                    fi 
-                    
-                fi
-                
-            fi
-                
-            # download the WordPress core file
-            vagrant ssh -- -q "wp core download --path='/var/www/public/$sitename'"
-                
-            # create the wp-config file with our standard setup
-            vagrant ssh -- -q "wp core config --path='/var/www/public/$sitename' --dbname=$sitename --dbuser=root --dbpass=root --extra-php <<PHP
-define( 'WP_DEBUG', true );
-define( 'WP_DEBUG_LOG', true );
-PHP"
+                    fi
 
-            echo $'\n'"${bold}Please wait. I'm creating the WordPress database${normal}"
-            vagrant ssh -- -q "wp db create --path='/var/www/public/$sitename'"
-            echo $'\n'"${bold}I know this is getting boring${normal}, but I have almost finished! I'm installing WordPress right now..."
-            vagrant ssh -- -q "wp core install --url='http://$sitename' --title='$sitename' --admin_user='$username' --admin_password='$password' --admin_email='$email' --path='/var/www/public/$sitename' --skip-email"
-                
-            # set pretty urls
-            vagrant ssh -- -q "wp rewrite structure '/%postname%/' --hard --path='/var/www/public/$sitename'"
-            vagrant ssh -- -q "wp rewrite flush --hard --path='/var/www/public/$sitename'"
-                
-            # delete akismet and hello dolly
-            vagrant ssh -- -q "wp plugin delete akismet --path='/var/www/public/$sitename'"
-            vagrant ssh -- -q "wp plugin delete hello --path='/var/www/public/$sitename'"
-                
-            echo ""
-            vagrant_reboot
-                
-            echo "================================================================="
-            echo ""
-            echo "${bold}Your WordPress is ${cyan}ready${normal}!"
-            echo ""
-            echo "Enjoy your new website : ${blue}http://$sitename ${normal}"
-            echo "Head to your WordPress admin : ${blue}http://$sitename/wp-admin ${normal}"
-            echo ""
-            echo "================================================================="
-            echo ""
-            
-        fi
-        
-    fi
-    
-}
+                fi
+
+            fi
+
+            # download the WordPress core file
+            vagrant ssh -- -q "wp core download --path='/var/www/$public_dir$sitename'"
+
+            # create the wp-config file with our standard setup
+            vagrant ssh -- -q "wp core config --path='/var/www/$public_dir$sitename' --dbname=$sitename --dbuser=root --dbpass=root --extra-php <<PHP
+	define( 'WP_DEBUG', true );
+	define( 'WP_DEBUG_LOG', true );
+	PHP"
+
+	            echo $'\n'"${bold}Please wait. I'm creating the WordPress database${normal}"
+	            vagrant ssh -- -q "wp db create --path='/var/www/$public_dir$sitename'"
+	            echo $'\n'"${bold}I know this is getting boring${normal}, but I have almost finished! I'm installing WordPress right now..."
+	            vagrant ssh -- -q "wp core install --url='http://$sitename' --title='$sitename' --admin_user='$username' --admin_password='$password' --admin_email='$email' --path='/var/www/$public_dir$sitename' --skip-email"
+
+	            # set pretty urls
+	            vagrant ssh -- -q "wp rewrite structure '/%postname%/' --hard --path='/var/www/$public_dir$sitename'"
+	            vagrant ssh -- -q "wp rewrite flush --hard --path='/var/www/$public_dir$sitename'"
+
+	            # delete akismet and hello dolly
+	            vagrant ssh -- -q "wp plugin delete akismet --path='/var/www/$public_dir$sitename'"
+	            vagrant ssh -- -q "wp plugin delete hello --path='/var/www/$public_dir$sitename'"
+
+	            echo ""
+	            vagrant_reboot
+
+	            echo "================================================================="
+	            echo ""
+	            echo "${bold}Your WordPress is ${cyan}ready${normal}!"
+	            echo ""
+	            echo "Enjoy your new website : ${blue}http://$sitename ${normal}"
+	            echo "Head to your WordPress admin : ${blue}http://$sitename/wp-admin ${normal}"
+	            echo ""
+	            echo "================================================================="
+	            echo ""
+
+	        fi
+
+	    fi
+
+	}
 
 create_symfony() {
-    
+
     echo ""
     echo "${bold}${cyan}Please, give me some informations for your new Symfony project ${normal}"
-    
+
     ask_sitename
-    
-    if [ -d "public/$sitename" ]; then 
+
+    if [ -d "$public_dir$sitename" ]; then
         echo ""
         echo "${bold}${red}$sitename already exists.${normal} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${normal}"
         echo ""
         exit
     else
-    
+
         default_symfony_version="lts"
         read -e -p "Which version do you want to install ? (number or [$default_symfony_version]): " symfony_version
         symfony_version=${symfony_version:-$default_symfony_version}
-        
+
         if vagrant ssh -- -q "grep -q \;date.timezone '/etc/php5/apache2/php.ini'"; then
-            default_configure_timezone="Y" 
+            default_configure_timezone="Y"
             read -e -p "Configure your date.timezone in php.ini? [$default_configure_timezone/n]: " configure_timezone
             configure_timezone=${configure_timezone:-$default_configure_timezone}
         else
             configure_timezone="configured"
         fi
-        
+
         if [[ $configure_timezone = "Y" ]] ; then
             timezone=
             while [[ $timezone = "" ]]; do
@@ -377,7 +465,7 @@ create_symfony() {
         else
             xdebug_install="installed"
         fi
-        
+
         if ! vagrant ssh -- -q "[ -f '/etc/php5/mods-available/apcu.ini' ] && echo 'It seems to me that APC is installed, going on.'" ; then
             default_apc_install="Y"
             read -e -p "APC Cache doesn't seems to installed, do you want me to install it? [$default_apc_install/n]: " apc_install
@@ -385,20 +473,20 @@ create_symfony() {
         else
             apc_install="installed"
         fi
-        
+
         echo ""
         echo "${blue}Please, double-check your informations before I begin to work. ${normal}"
         echo ""
         echo "${bold} Site name : ${cyan}$sitename${normal}"
         echo "${bold} Symfony version : ${cyan}$symfony_version${normal}"
-        if [ $xdebug_install = "Y" ] ; then 
+        if [ $xdebug_install = "Y" ] ; then
             echo "${bold} Install PHP xdebug : ${bold}${green}Yes please.${normal}"
         elif [ $xdebug_install = "n" ] ; then
             echo "${bold} Install PHP xdebug : ${bold}${red} No thanks.${normal}"
-        else 
+        else
             echo "${bold} Install PHP xdebug : ${bold}${blue}Already installed.${normal}"
         fi
-        
+
         if [ $apc_install = "Y" ] ; then
             echo "${bold} Install php APC : ${bold}${green}Yes please.${normal}"
         elif [ $apc_install = "n" ] ; then
@@ -406,7 +494,7 @@ create_symfony() {
         else
             echo "${bold} Install php APC : ${bold}${blue}Already installed.${normal}"
         fi
-        
+
         if [ $configure_timezone = "Y" ] ; then
             echo "${bold} Configure timezone : ${bold}${green}Yes please.${normal}"
         elif [ $configure_timezone = "n" ] ; then
@@ -419,7 +507,7 @@ create_symfony() {
         else
             echo ""
         fi
-        
+
         # add a simple yes/no confirmation before we proceed
         read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
@@ -427,55 +515,55 @@ create_symfony() {
         if [ "$run" == n ] ; then
             exit
         else
-        
+
             if [ $configure_timezone = "Y" ] ; then
                 # Set the date.timezone in /etc/php5/cli/php.ini to avoid error
                 vagrant ssh -- -q "sudo sed -i s,'\;date.timezone =','date.timezone = $timezone',g /etc/php5/apache2/php.ini"
                 vagrant ssh -- -q "sudo sed -i s,'\;date.timezone =','date.timezone = $timezone',g /etc/php5/cli/php.ini"
             fi
-            
+
             if vagrant ssh -- -q "[ ! -f '/usr/local/bin/symfony' ]" ; then
                 echo $'\n'"${bold}Symfony does not seems to be installed. ${normal}Begin installation..."
                 vagrant ssh -- -q "sudo curl -LsS https://symfony.com/installer -o /usr/local/bin/symfony"
                 vagrant ssh -- -q "sudo chmod a+x /usr/local/bin/symfony"
                 echo "${bold}${green}Hooray! ${bold}I managed to install Symfony on your Vagrant Box without ruining everything!${normal}"$'\n'
             fi
-            
+
             if [ $xdebug_install = "Y" ] ; then
                 echo "${bold}I'm installing xdebug. ${normal}Please wait a few seconds..."
                 vagrant ssh -- -q "sudo apt-get update -qq"
                 vagrant ssh -- -q "sudo apt-get install php5-xdebug -y -qq"
                 echo "${bold}${green}Hooray! ${bold}xdebug is installed!${normal}"$'\n'
             fi
-            
+
             if [ $apc_install = "Y" ] ; then
                 echo "${bold}I'm installing APC. ${normal}Please wait a few seconds..."
                 vagrant ssh -- -q "sudo apt-get update -qq"
                 vagrant ssh -- -q "sudo apt-get install php-apc -y -qq"
                 echo "${bold}${green}Hooray! ${bold}APC is installed!${normal}"$'\n'
             fi
-            
+
             echo "${bold}Please wait. ${normal}I'm creating your new Symfony project..."
-            vagrant ssh -- -q "(cd /var/www/public && symfony new $sitename $symfony_version)"
-            vagrant ssh -- -q "echo '$sitename' > /var/www/public/$sitename/custom-hosts"
-            
+            vagrant ssh -- -q "(cd /var/www/$public_dir && symfony new $sitename $symfony_version)"
+            vagrant ssh -- -q "echo '$sitename' > /var/www/$public_dir$sitename/custom-hosts"
+
             echo "${bold}Hold on please. ${normal}I'm creating the Virtual Host config for $sitename..."
             if vagrant ssh -- -q -t "sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$sitename.conf" ; then
                 vagrant ssh -- -q -t "sudo sed -i s,'#ServerName www.example.com','ServerName $sitename',g /etc/apache2/sites-available/$sitename.conf"
-                vagrant ssh -- -q -t "sudo sed -i s,/var/www/public,/var/www/public/$sitename/web,g /etc/apache2/sites-available/$sitename.conf"
+                vagrant ssh -- -q -t "sudo sed -i s,/var/www/public,/var/www/$public_dir$sitename/web,g /etc/apache2/sites-available/$sitename.conf"
                 vagrant ssh -- -q -t "sudo a2ensite $sitename.conf > /dev/null 2>&1"
                 echo "${green}Hooray!${normal} Virtual Host is ready."$'\n'
             else
                 echo "${error_bg}${bold}${white}Oops!${normal} I was unable to create the database. Exiting."$'\n'
                 exit
             fi
-            
+
             echo "${bold}Hold on, be quiet. ${normal}I'm cracking the code of the vault, full access incoming..."
-            vagrant ssh -- -q "sudo sed -i 's/'\''127.0.0.1'\''/'\''127.0.0.1'\'', '\''192.168.33.1'\''/g' /var/www/public/$sitename/web/app_dev.php"
-            vagrant ssh -- -q "sudo sed -i 's/'\''127.0.0.1'\''/'\''127.0.0.1'\'',\n'\''192.168.33.1'\''/g' /var/www/public/$sitename/web/config.php"
-            
+            vagrant ssh -- -q "sudo sed -i 's/'\''127.0.0.1'\''/'\''127.0.0.1'\'', '\''192.168.33.1'\''/g' /var/www/$public_dir$sitename/web/app_dev.php"
+            vagrant ssh -- -q "sudo sed -i 's/'\''127.0.0.1'\''/'\''127.0.0.1'\'',\n'\''192.168.33.1'\''/g' /var/www/$public_dir$sitename/web/config.php"
+
             vagrant_reboot
-            
+
             echo "================================================================="
             echo ""
             echo "${bold}Your Symfony project is ${cyan}ready${normal}!"
@@ -484,35 +572,35 @@ create_symfony() {
             echo ""
             echo "================================================================="
             echo ""
-        
+
         fi
-    
+
     fi
-    
+
 }
 
 create_angular() {
-    
+
     echo ""
     echo "${bold}${cyan}Please, give me some informations for your new Angular2 App ${normal}"
-    
+
     ask_sitename
-    
-    if [ -d "public/$sitename" ]; then 
+
+    if [ -d "$public_dir$sitename" ]; then
         echo ""
         echo "${bold}${red}$sitename already exists.${bold} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${bold}"
         echo ""
         exit
     else
-    
+
         default_node_npm_update="N"
             read -e -p "Maybe you want to update node & npm while you go grab a coffee? [y/N]: " node_npm_update
         node_npm_update=${node_npm_update:-$default_node_npm_update}
-        
+
         default_tsc="Y"
             read -e -p "Run Angular2 TypeScript Compiler in watch mode right after installation? [Y/n]: " tsc
         tsc=${tsc:-$default_tsc}
-        
+
         echo ""
         echo "${blue}Please, double-check your informations before I begin to work. ${normal}"
         echo ""
@@ -520,7 +608,7 @@ create_angular() {
         [ $node_npm_update = "y" ] && echo "${bold} Update node & npm : ${green} Yes please.${normal}" || echo "${bold} Update node & npm : ${red} No thanks.${normal}"
         [ $tsc = "Y" ] && echo "${bold} Run Angular2 TypeScript compiler : ${green} Yes please.${normal}" || echo "${bold} Run Angular2 TypeScript compiler : ${red} No thanks.${normal}"
         echo ""
-        
+
         # add a simple yes/no confirmation before we proceed
         read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
@@ -530,19 +618,19 @@ create_angular() {
         else
 
             echo $'\n'"${bold}Please wait. ${normal}I'm importing a quickstart Angular2 App from GitHub Repo in $sitename directory..."
-            if vagrant ssh -- -q "git clone https://github.com/angular/quickstart /var/www/public/$sitename" ; then
-                vagrant ssh -- -q "sudo sed -i 's/Angular 2 QuickStart/$sitename/g' /var/www/public/$sitename/index.html"
+            if vagrant ssh -- -q "git clone https://github.com/angular/quickstart /var/www/$public_dir$sitename" ; then
+                vagrant ssh -- -q "sudo sed -i 's/Angular 2 QuickStart/$sitename/g' /var/www/$public_dir$sitename/index.html"
                 # THE FOLLOWING LINE IS A FIX FOR THE "ReferenceError: System is not defined" ERROR
-                #vagrant ssh -- -q "sudo sed -i 's,node_modules/systemjs/dist/system.src.js,https://code.angularjs.org/tools/system.js,g' /var/www/public/test.dev/index.html"
+                #vagrant ssh -- -q "sudo sed -i 's,node_modules/systemjs/dist/system.src.js,https://code.angularjs.org/tools/system.js,g' /var/www/$public_dirtest.dev/index.html"
                 # THE FOLLOWING LINE IS A FIX FOR THIS ERROR : http://stackoverflow.com/questions/33332394/angular-2-typescript-cant-find-names/35514492#35514492
-                # vagrant ssh -- -q "sed -i -e '1i///<reference path='../node_modules/angular2/typings/browser.d.ts'/>\' /var/www/public/$sitename/app/main.ts"
-                vagrant ssh -- -q "sudo sed -i 's/angular2-quickstart/$sitename/g' /var/www/public/$sitename/package.json"
-                vagrant ssh -- -q "echo $sitename > /var/www/public/$sitename/custom-hosts"
+                # vagrant ssh -- -q "sed -i -e '1i///<reference path='../node_modules/angular2/typings/browser.d.ts'/>\' /var/www/$public_dir$sitename/app/main.ts"
+                vagrant ssh -- -q "sudo sed -i 's/angular2-quickstart/$sitename/g' /var/www/$public_dir$sitename/package.json"
+                vagrant ssh -- -q "echo $sitename > /var/www/$public_dir$sitename/custom-hosts"
                 vagrant ssh -- -q "echo '${bold}${green}Hooray!${normal} Angular2 App imported successfully. It's a wonderful little girl! Take care of her or it's gonna be veeery very bad for you. Please.'$'\n'"
             fi
 
             mkvhost
-            
+
             if [ $node_npm_update = "Y" ] ; then
                 if vagrant ssh -- -q "sudo npm cache clean -f" ; then
                     echo "${bold}sudo npm cache clean -f : ${bold}${green}ok ${normal}"
@@ -557,12 +645,12 @@ create_angular() {
                 echo "${bold}sudo npm install npm -g : ${bold}${green}ok ${normal}"
                 fi
             fi
-            
+
             echo "${bold}I'm doing a possibly-not-so-quick \"npm install\"${normal}, sorry about that."
-            vagrant ssh -- -q "(cd /var/www/public/$sitename && npm install  --ignore-scripts --quiet)"
-            vagrant ssh -- -q "(cd /var/www/public/$sitename && npm run typings install)"
+            vagrant ssh -- -q "(cd /var/www/$public_dir$sitename && npm install  --ignore-scripts --quiet)"
+            vagrant ssh -- -q "(cd /var/www/$public_dir$sitename && npm run typings install)"
             echo "${bold}${green}Hooray! ${normal}${bold}I finally finished to do the npm-install! Let's have a drink together.${normal}"$'\n'
-            
+
             vagrant_reboot
 
             echo "================================================================="
@@ -573,43 +661,43 @@ create_angular() {
             echo ""
             echo "================================================================="
             echo ""
-            
+
             if [ $tsc == "Y" ] ; then
                 echo "${bold}I launch the TypeScript Compiler in watch mode immediately${normal}, as you requested."
-                vagrant ssh -- -q "(cd /var/www/public/$sitename && npm run tsc:w)"
+                vagrant ssh -- -q "(cd /var/www/$public_dir$sitename && npm run tsc:w)"
             fi
 
         fi
-        
+
     fi
-    
+
 }
 
 create_laravel() {
-    
+
     echo ""
     echo "${bold}${cyan}Please, give me some informations for your new Laravel project ${normal}"
-    
+
     ask_sitename
-    
-    if [ -d "public/$sitename" ]; then 
+
+    if [ -d "$public_dir$sitename" ]; then
         echo ""
         echo "${bold}${red}$sitename already exists.${bold} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${bold}"
         echo ""
         exit
     else
-    
+
         default_composer_update="N"
             read -e -p "Maybe you want to update composer while you go grab a cup of tea? [y/N]: " composer_update
         composer_update=${composer_update:-$default_composer_update}
-        
+
         echo ""
         echo "${blue}Please, double-check your informations before I begin to work. ${normal}"
         echo ""
         echo "${bold} Site name : ${cyan}$sitename ${normal}"
         [ $composer_update = "y" ] && echo "${bold} Update Composer : ${green} Yes please.${normal}" || echo "${bold} Update Composer : ${red} No thanks.${normal}"
         echo ""
-        
+
         # add a simple yes/no confirmation before we proceed
         read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
@@ -617,36 +705,36 @@ create_laravel() {
         if [ "$run" == n ] ; then
         exit
         else
-        
-            if [ $composer_update = "y" ] ; then 
+
+            if [ $composer_update = "y" ] ; then
                 echo $'\n'"${bold}Updating Composer. ${normal}"
                 if vagrant ssh -- -q "sudo /usr/local/bin/composer self-update" ; then
                     echo "${bold}${green}Hooray! ${normal}${bold}Composer's up and runnin', baby. ${normal}"$'\n'
                 else
                     echo "${error_bg}${bold}${white}Oops! ${normal}${bold}Something went wrong, I don't know where, I don't know why. ${normal}"$'\n'
                 fi
-                    
+
             fi
-            
+
             echo "${bold}Hold on please. ${normal}I'm creating the Virtual Host config for $sitename..."
             if vagrant ssh -- -q -t "sudo cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/$sitename.conf" ; then
                 vagrant ssh -- -q -t "sudo sed -i s,'#ServerName www.example.com','ServerName $sitename',g /etc/apache2/sites-available/$sitename.conf"
-                vagrant ssh -- -q -t "sudo sed -i s,/var/www/public,/var/www/public/$sitename/public,g /etc/apache2/sites-available/$sitename.conf"
+                vagrant ssh -- -q -t "sudo sed -i s,/var/www/public,/var/www/$public_dir$sitename/public,g /etc/apache2/sites-available/$sitename.conf"
                 vagrant ssh -- -q -t "sudo a2ensite $sitename.conf > /dev/null 2>&1"
                 echo "${green}Hooray!${normal} Virtual Host is ready."$'\n'
             else
                 echo "${error_bg}${bold}${white}Oops!${normal} I was unable to create the database. Exiting."$'\n'
                 exit
             fi
-            
+
             echo "${bold}And now, the grand final (it was long, hu?), Laravel itself.${normal}"
-            if vagrant ssh -- -q "(cd /var/www/public && composer create-project --prefer-dist laravel/laravel $sitename)" ; then
-                vagrant ssh -- -q -t "echo \"$sitename\" > /var/www/public/$sitename/custom-hosts"
+            if vagrant ssh -- -q "(cd /var/www/$public_dir && composer create-project --prefer-dist laravel/laravel $sitename)" ; then
+                vagrant ssh -- -q -t "echo \"$sitename\" > /var/www/$public_dir$sitename/custom-hosts"
                 echo "${bold}${green}Hooray! ${normal}${bold}I made it! Laravel is installed! ${normal}"$'\n'
             else
                 echo "${error_bg}${bold}${white}Oops! ${normal}${bold}I messed up everything... I wasn't able to install Laravel... I'm a loser...${normal}"$'\n'
             fi
-            
+
             vagrant_reboot
 
             echo "================================================================="
@@ -657,70 +745,70 @@ create_laravel() {
             echo ""
             echo "================================================================="
             echo ""
-        
+
         fi
-    
+
     fi
-    
+
 }
 
 create_pagekit() {
-    
+
     echo ""
     echo "${bold}${cyan}Please, give me some informations for your new Pagekit project ${normal}"
-    
+
     ask_sitename
-    
-    if [ -d "public/$sitename" ]; then 
+
+    if [ -d "$public_dir$sitename" ]; then
         echo ""
         echo "${bold}${red}$sitename already exists.${bold} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${bold}"
         echo ""
         exit
     else
-    
+
         admin_email=
         while [[ $admin_email = "" ]]; do
             read -e -p "I will need your email address, if you don't mind: " admin_email
         done
-        
+
         admin_password=
         while [[ $admin_password = "" ]]; do
             read -s -p "Of course, you have to setup an admin password: " admin_password
         done
-    
+
         default_dbdriver="mysql"
             read -e -p $'\n'"You have to choose between MySQL and SQLite now. [${bold}$default_dbdriver${normal}/sqlite] " dbdriver
         dbdriver=${dbdriver:-$default_dbdriver}
-        
+
         if [ $dbdriver = "mysql" ] ; then
-            
+
             echo ""
             echo "${bold}You've chosen MySQL${normal}, so I need a few extra details."
             echo ""
-            
+
             default_dbhost="localhost"
                 read -e -p "What is your MySQL host? [localhost] " dbhost
             dbhost=${dbhost:-$default_dbhost}
-            
+
             default_dbuser="root"
                 read -e -p "Please tell me your MySQL username? [root] " dbuser
             dbuser=${dbuser:-$default_dbuser}
-            
+
             dbpass=
             while [[ $dbpass = "" ]]; do
                 read -s -p "I'm sure you expected me to ask you a password. I'm previsible, your MySQL password for ${bold}$dbuser${normal} please : " dbpass
             done
-            
+
         fi
-        
+
         default_node_npm_update="N"
             read -e -p $'\n'"Maybe you want to update node & npm before installing your Pagekit project? [y/N]: " node_npm_update
         node_npm_update=${node_npm_update:-$default_node_npm_update}
-        
+
         default_composer_update="N"
             read -e -p "What about updating ${bold}Composer${normal}? I heard the new version is better than Justin Bieber since it produces no sound. [y/N]: " composer_update
         composer_update=${composer_update:-$default_composer_update}
-        
+
         echo $'\n'"${blue}Ok! I'm all set! Please, double-check your informations before I begin to work. ${normal}"$'\n'
         echo "${bold} Site name : ${cyan}$sitename ${normal}"
         echo "${bold} Email address : ${cyan}$admin_email ${normal}"
@@ -730,7 +818,7 @@ create_pagekit() {
         [ $dbdriver = "mysql" ] && echo "${bold} MySQL Username : ${cyan}$dbuser${normal}"
         [ $composer_update = "y" ] && echo "${bold} Update Composer : ${green}Yes please.${normal}" || echo "${bold} Update Composer : ${red} No thanks.${normal}"
         [ $node_npm_update = "y" ] && echo "${bold} Update node & npm : ${green}Yes please.${normal}" || echo "${bold} Update node & npm : ${red} No thanks.${normal}"
-        
+
         # add a simple yes/no confirmation before we proceed
         read -e -p $'\n'"Do you want me to run the installation procedure? [Y/n]: " run
 
@@ -738,7 +826,7 @@ create_pagekit() {
         if [ "$run" == n ] ; then
         exit
         else
-            
+
             if [ $dbdriver = "mysql" ] ; then
                 echo "${bold}Please wait. ${normal}Creating database for $sitename..."
                 if vagrant ssh -- -q -t "mysqladmin -u $dbuser create $sitename" ; then
@@ -748,51 +836,51 @@ create_pagekit() {
                     exit
                 fi
             fi
-        
+
             echo "${bold}OK!${normal} (high-pitched-plumber-voice=on) ${red}Here we go-o${normal}!"
-            
+
             echo $'\n'"${bold}Please wait. ${normal}I might broke the WorldWide Web by colining the GitHub Repo in your $sitename directory..."
-            if vagrant ssh -- -q "git clone --branch develop git://github.com/pagekit/pagekit.git /var/www/public/$sitename" ; then
-    
-                vagrant ssh -- -q -t "echo \"$sitename\" > /var/www/public/$sitename/custom-hosts"
+            if vagrant ssh -- -q "git clone --branch develop git://github.com/pagekit/pagekit.git /var/www/$public_dir$sitename" ; then
+
+                vagrant ssh -- -q -t "echo \"$sitename\" > /var/www/$public_dir$sitename/custom-hosts"
                 echo "${bold}${green}Hooray!${normal} Pagekit repository cloned successfully! I love myself. You should write a book about me."$'\n'
                 mkvhost
-                
-            else 
-                exit        
+
+            else
+                exit
             fi
-            
+
             echo $'\n'"I will now launch the ${bold}Composer${normal} install, so you can peacefully go and grab a coffee, answer your emails, or annoy your coworkers/colleagues by playing Eiffel 65's ${blue}Blue${normal}."
-            if vagrant ssh -- -q "cd /var/www/public/$sitename && composer install" ; then
+            if vagrant ssh -- -q "cd /var/www/$public_dir$sitename && composer install" ; then
                 echo $'\n'"Everything worked with ${bold}Composer${normal}! Let's do some ${bold}npm${normal} stuff now."
             else
                 echo $'\n'"${bold}${red}Oops!${normal} ${bold}Composer${normal}'s symphony was a big letdown, nothing worked as expected"$'\n'
                 exit
             fi
-            
-            if vagrant ssh -- -q "cd /var/www/public/$sitename && npm install" ; then
+
+            if vagrant ssh -- -q "cd /var/www/$public_dir$sitename && npm install" ; then
                 echo $'\n'"${bold}npm${normal} installed everything well! Let's install Pagekit now."
             else
                 echo $'\n'"${bold}${red}Oops!${normal} There was something wrong with ${bold}npm${normal}"$'\n'
                 exit
             fi
-                        
-            base_pagekit_install="/var/www/public/$sitename/pagekit setup -q --adminmail $admin_email --adminpass $admin_password --dbdriver $dbdriver"
+
+            base_pagekit_install="/var/www/$public_dir$sitename/pagekit setup -q --adminmail $admin_email --adminpass $admin_password --dbdriver $dbdriver"
             [ $dbdriver = "mysql" ] && pagekit_install_dbname=" --dbname $dbname" || pagekit_install_dbname=""
             [ $dbdriver = "mysql" ] && pagekit_install_dbhost=" --dbhost $dbhost" || pagekit_install_dbhost=""
             [ $dbdriver = "mysql" ] && pagekit_install_dbuser=" --dbuser $dbuser" || pagekit_install_dbuser=""
             [ $dbdriver = "mysql" ] && pagekit_install_dbpass=" --dbpass $dbpass" || pagekit_install_dbpass=""
             pagekit_install="$base_pagekit_install$pagekit_install_dbname$pagekit_install_dbhost$pagekit_install_dbuser$pagekit_install_dbpass"
-                        
-            if vagrant ssh -- -q "cd /var/www/public/$sitename && $pagekit_install" ; then 
-                echo "${bold}${green}Hooray! ${normal}${bold}Pagekit is installed! ${normal}"$'\n'   
+
+            if vagrant ssh -- -q "cd /var/www/$public_dir$sitename && $pagekit_install" ; then
+                echo "${bold}${green}Hooray! ${normal}${bold}Pagekit is installed! ${normal}"$'\n'
             else
                 echo $'\n'"${bold}${red}Oops!${normal} I failed at the gates of glory. ${bold}Pagekit${normal} was not installed..."$'\n'
                 exit
             fi
-            
+
             vagrant_reboot
-            
+
             echo "================================================================="
             echo ""
             echo "${bold}Your new Pagekit project is ${bold}${cyan}ready${normal}!"
@@ -803,39 +891,39 @@ create_pagekit() {
             echo ""
             echo "================================================================="
             echo ""
-            
+
         fi
-    
+
     fi
-    
+
 }
 
 create_react() {
-    
+
     echo $'\n'"${bold}Please, give me some informations for your new React project${normal}"
-    
+
     ask_sitename
-    
-    if [ -d "public/$sitename" ]; then 
-    
+
+    if [ -d "$public_dir$sitename" ]; then
+
         echo ""
         echo "${bold}${error_bg}${white}$sitename already exists.${normal} ${bold}Don't be a sadistic, leave these fellows here, it's freezing cold out there!${normal}"
         echo ""
         exit
-        
+
     else
-    
-        default_site_db="N" 
+
+        default_site_db="N"
         read -e -p "I don't know your plans, so maybe you want me to create an empty MySQL database ? [y/$default_site_db]: " site_db
         site_db=${site_db:-$default_site_db}
-        
+
         echo ""
         echo "${bold}${blue}Please, double-check your informations before I begin to work. ${normal}"
         echo ""
         echo "${bold} Site name : ${cyan}$sitename ${normal}"
         [ $site_db = "y" ] && echo "${bold} Create a database : ${green} Yes please.${normal}" || echo "${bold} Create a database : ${bold}${red} No thanks.${normal}"
         echo ""
-        
+
         # add a simple yes/no confirmation before we proceed
         read -e -p "Do you want me to run the installation procedure? [Y/n]: " run
 
@@ -843,13 +931,13 @@ create_react() {
         if [ "$run" == n ] ; then
             exit
         else
-    
+
             mkdomain
-            
+
             mkvhost
-            
+
             if [ $site_db = "y" ] ; then
-            
+
                 echo ""
                 echo "${bold}So, MySQL${normal}. I need a few extra details."
                 echo ""
@@ -857,7 +945,7 @@ create_react() {
                 default_dbuser="root"
                     read -e -p "Please tell me your MySQL username? [root] " dbuser
                 dbuser=${dbuser:-$default_dbuser}
-                    
+
                 echo "${bold}Please wait. ${normal}Creating database for $sitename..."
                 if vagrant ssh -- -q -t "mysqladmin -u $dbuser create $sitename" ; then
                     echo "${green}Hooray!${normal} Database $sitename created successfully."$'\n'
@@ -865,66 +953,70 @@ create_react() {
                     echo "${error_bg}${bold}${white}Oops!${normal} I was unable to create the database. Exiting."$'\n'
                     exit
                 fi
-            
-            fi
-            
-            if vagrant ssh -- -q -t "cat > /var/www/public/$sitename/index.html <<REACT
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset=\"UTF-8\" />
-    <title>Hello React!</title>
-    <script src=\"https://fb.me/react-15.0.1.js\"></script>
-    <script src=\"https://fb.me/react-dom-15.0.1.js\"></script>
-    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js\"></script>
-  </head>
-  <body>
-    <div id=\"example\"></div>
-    <script type=\"text/babel\">
-      ReactDOM.render(
-        <h1>Hello, world!</h1>,
-        document.getElementById('example')
-      );
-    </script>
-  </body>
-</html>
-REACT" ; then
 
-                echo "${green}Hooray!${normal} React project started!"$'\n'
-                
-            else
-                echo "${red}Oops!${normal} I'm so dumb I didn't even managed to create a basic React project..."$'\n'
             fi
-            
-            vagrant_reboot
-            
-            echo "================================================================="
-            echo ""
-            echo "${bold}   Your React project is ${bold}${cyan}up & ready${normal}!"
-            echo ""
-            echo "   Enjoy : ${cyan}http://$sitename${normal}"
-            echo ""
-            echo "================================================================="
-            echo ""
 
-        fi
-        
-    fi
-    
-}
+            if vagrant ssh -- -q -t "cat > /var/www/$public_dir$sitename/index.html <<REACT
+	<!DOCTYPE html>
+	<html>
+	  <head>
+	    <meta charset=\"UTF-8\" />
+	    <title>Hello React!</title>
+	    <script src=\"https://fb.me/react-15.0.1.js\"></script>
+	    <script src=\"https://fb.me/react-dom-15.0.1.js\"></script>
+	    <script src=\"https://cdnjs.cloudflare.com/ajax/libs/babel-core/5.8.23/browser.min.js\"></script>
+	  </head>
+	  <body>
+	    <div id=\"example\"></div>
+	    <script type=\"text/babel\">
+	      ReactDOM.render(
+	        <h1>Hello, world!</h1>,
+	        document.getElementById('example')
+	      );
+	    </script>
+	  </body>
+	</html>
+	REACT" ; then
+
+	                echo "${green}Hooray!${normal} React project started!"$'\n'
+
+	            else
+	                echo "${red}Oops!${normal} I'm so dumb I didn't even managed to create a basic React project..."$'\n'
+	            fi
+
+	            vagrant_reboot
+
+	            echo "================================================================="
+	            echo ""
+	            echo "${bold}   Your React project is ${bold}${cyan}up & ready${normal}!"
+	            echo ""
+	            echo "   Enjoy : ${cyan}http://$sitename${normal}"
+	            echo ""
+	            echo "================================================================="
+	            echo ""
+
+	        fi
+
+	    fi
+
+	}
 
 create() {
-    
+
     echo "${cyan}${bold}"
     echo "Please select the type of project you want me to create :${normal}"
     PS3=$'\n'"Please enter your choice: "
-    options=("Simple Domain" "WordPress" "Symfony" "Angular2" "Laravel" "Pagekit" "React" "Quit")
+    options=("Simple Domain" "Git Clone" "WordPress" "Symfony" "Angular2" "Laravel" "Pagekit" "React" "Quit")
     echo ""
     select opt in "${options[@]}"
     do
         case $opt in
             "Simple Domain")
                 create_domain
+                break
+                ;;
+            "Git Clone")
+                create_git
                 break
                 ;;
             "WordPress")
@@ -957,22 +1049,24 @@ create() {
             *) echo invalid option;;
         esac
     done
-    
+
 }
 
+## Delete Function
+
 delete() {
-    
+
     echo ""
     echo "${bold}Alright. ${normal}I hope it's not my fault..."
     echo ""
-    
+
     sitename=
     while [[ $sitename = "" ]]; do
         read -e -p "Which site do you want me to delete (don't forget the extension): " sitename
     done
-    
+
     # checking if folder exists, if not : returns error message, if yes, going on
-    if [ ! -d "public/$sitename" ]; then 
+    if [ ! -d "$public_dir$sitename" ]; then
         echo ""
         echo "${bold}${red}$sitename doesn't exists.${normal} ${bold}Screw you guys, I'm going home!${normal}"
         echo ""
@@ -985,7 +1079,7 @@ delete() {
         if [ "$run" == n ] ; then
             exit
         else
-            
+
             echo ""
             echo ""
             echo "-------------------------------------------------"
@@ -993,11 +1087,11 @@ delete() {
             echo "-------------------------------------------------"
             echo ""
             echo ""
-            
+
             echo "${bold}Please wait, ${normal}I'm checking if there's a database to remove."
             if ! vagrant ssh -- -q "mysqlshow '$sitename' > /dev/null 2>&1 && echo 'Hey! I found it!'" ; then
                 echo "${bold}No database found. ${normal}I'm going on."$'\n'
-            else 
+            else
                 echo "${bold}Hold on please, ${normal}I'm removing database for $sitename..."
                 if vagrant ssh -- -q "mysqladmin -u root drop $sitename" ; then
                     echo "${bold}${green}Hooray!${normal} database removed"$'\n'
@@ -1008,7 +1102,7 @@ delete() {
             fi
 
             echo "${bold}Please wait. ${normal}I'm removing $sitename directory ..."
-            if rm -R public/$sitename ; then
+            if rm -R $public_dir$sitename ; then
                 echo "${bold}${green}Hooray!${normal} Directory removed successfully."$'\n'
             else
                 echo "${error_bg}${bold}${white}Oops!${normal} I was unable to delete the directory. Exiting."$'\n'
@@ -1025,37 +1119,45 @@ delete() {
             fi
 
             vagrant_reboot
-            
+
             echo "Your $sitename was successfully ${bold}${cyan}erased${normal}!"$'\n'
 
         fi
-        
+
     fi
-    
+
 }
 
+## Main
+
 main() {
-	
+
+	## Add Forwardslash
+	public_dir="$public_dir/"
+
     if [ -z "$1" ]; then
 	    about
 	fi
-    
+
     if [ "$1" = "--version" ]; then
         version
     fi
-    
+
     if [ "$1" = "update" ]; then
         update
     fi
-    
+
     if [ "$1" = "create" ]; then
-    
+
         if [ -z "$2" ]; then
             create
         else
             case $2 in
                 "domain")
                     create_domain
+                    ;;
+                "git")
+                    create_git
                     ;;
                 "wordpress")
                     create_wordpress
@@ -1078,9 +1180,9 @@ main() {
                 *) echo invalid option;;
             esac
         fi
-    	
+
     fi
-    
+
     if [ "$1" = "delete" ]; then
     	delete
     fi
